@@ -12,10 +12,10 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
 
 #pragma region Flowchart
  /*!
-  * \section Unjello_Flowcharts Unjello Process Flowcharts
-  *
-  * \subsection Unjello_Process_Overview Unjello Process Overview
-  * \verbatim
+ ===================================================================
+ =                    Unjello Process Overview                     =
+ ===================================================================
+
                             /-------------/
                            /  Open Video /
                           /-------------/
@@ -40,10 +40,15 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
  +---<-----+-------------+               +--------------+---->-----+
 
 
-  * \endverbatim
-  *
-  * \subsection Instant_Unjello Instant Unjello
-  * \verbatim
+
+
+
+
+ ===================================================================
+ =                     Instant Unjello                             =
+ ===================================================================
+
+
              /------------------/
             /    Open Video    /
            /------------------/
@@ -74,48 +79,65 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
      +-----<---------:----------->---------------------------------+
 
 
-  * \endverbatim
-  *
-  * \subsection Reflected_Unjello Reflected Unjello
-  * \verbatim
+
+
+
+ ===================================================================
+ =                     Reflected Unjello                           =
+ ===================================================================
+
              /------------------/
             /    Open Video    /
            /------------------/
                      |
-                     +------------------------<--------------------+
-                     |                                             |
-                     v                                             |
-            +-------------------+                                  |
-            ||  Configuration  ||                                  |
-            +-------------------+                                  |
-                     |                                             |
-                     v                                             |
-   +---------------------------------------------+                 |
-   | Update <15>                                 |                 |
-   |---------------------------------------------|                 |
-   | - SetUnjelloFrameNumberRange                |                 ^
-   | - SetUnjelloEnableAutoShutterSpeed( false ) |                 |
-   | - SetUnjelloShutterSpeed( Speed )           |                 |
-   | - etc.                                      |                 |
-   +-----------------+---------------------------+                 |
-                     |                                             |
-     +------>--------+                                             |
-     |               v                                             |
-     |      +-------------------+                                  |
-     |      | Render Frame <12> |                                  |
-     |      +-------------------+                                  |
-     |               v                                             |
-     +-----<---------:----------->---------------------------------+
+                     +------------------------<-----------------------+
+                     |                                                |
+                     v                                                |
+            +-------------------+                                     |
+            ||  Configuration  ||                                     |
+            +-------------------+                                     |
+                     |                                                |
+                     v                                                |
+   +---------------------------------------------+                    |
+   | Update <15>                                 |                    |
+   |---------------------------------------------|                    |
+   | - SetUnjelloFrameNumberRange                |                    |
+   | - SetUnjelloEnableAutoShutterSpeed          |                    |
+   | - SetUnjelloShutterSpeed                    |                    |
+   | - etc.                                      |                    |
+   +-----------------+---------------------------+                    |
+                     |                                                ^
+                     v                                                |
+         +------------------------+ Yes  +------------------------+   |
+         |  If analysis required? |----->|| Perform Analysis<16> ||   |
+         +-----------+------------+      +---------+--------------+   |
+                     | No                          v                  |
+                     +-------------<---------------+                  |
+     +------>--------+                                                |
+     |               v                                                |
+     |      +-------------------+                                     |
+     |      | Render Frame <12> |                                     |
+     |      +-------------------+                                     |
+     |               v                                                |
+     +-----<---------:----------->------------------------------------+
 
 
-  * \endverbatim
-  *
-  * \subsection Configuration Configuration
-  * \verbatim
+
+
+
+
+
+
+
+
+ ===============================================================
+ =                  Configuration                              =
+ ===============================================================
+
    +-------------------------+  Yes +----------------+
    | Video settings changed? |----->| Delete Unjello |
    | Such: FieldOrder, Rate, |      +----------------+
-   | Size, Start-End-time,...|             |
+   | Size, Start-Endtime, ...|             |
    +-------------------------+             |
               |                            |
               v                            v
@@ -130,15 +152,19 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
    |---------------------------|
    | - SetUnjelloCustomData    |
    | - SetUnjelloFrameCallback |
-   | - etc.                    |
+   | - ect.                    |
    +---------------------------+
               :
               v
 
-  * \endverbatim
-  *
-  * \subsection Analyze_Video Analyze Video
-  * \verbatim
+
+
+
+
+
+ ===============================================================
+ =                  Analysis Video <16>                        =
+ ===============================================================
                             +------->------+
            |                |              |<--------------+
            |                ^              v               |
@@ -155,10 +181,15 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
            |                +--------<-----:------>--------+
            v
 
-  * \endverbatim
-  *
-  * \subsection Export_Process Export Process
-  * \verbatim
+
+
+
+
+
+ ===================================================================
+ =                        Export Process <11>                      =
+ ===================================================================
+
    /------------------/
   /  Create Encoder  /
  /------------------/
@@ -183,16 +214,16 @@ $DAT >>VideoUnjello.h<< 15 Okt 2024  10:00:29 - (c) proDAD
   / Close Encoder   /
  /-----------------/
 
-  * \endverbatim
-  *
-  * \note References:
-  * - <11> VideoUnjelloExport()
-  * - <12> VideoUnjelloRenderFrame()
-  * - <13> UnjelloFrame()
-  * - <14> VideoUnjelloSetup()
-  * - <15> VideoUnjelloUpdate()
-  * - <16> VideoUnjelloAnalysis()
-  * - <17> MercalliEstimateUnjelloShutterSpeed()
+
+
+ Footer:
+ <11>  see VideoUnjelloExport()
+ <12>  see VideoUnjelloRenderFrame()
+ <13>  see UnjelloFrame()
+ <14>  see VideoUnjelloSetup()
+ <15>  see VideoUnjelloUpdate()
+ <16>  see VideoUnjelloAnalysis()
+ <17>  see MercalliEstimateUnjelloShutterSpeed()
   */
 #pragma endregion
 

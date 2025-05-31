@@ -12,210 +12,260 @@ $DAT >>VideoStabilization.h<< 15 Okt 2024  10:00:36 - (c) proDAD
 
 #pragma region Flowchart
  /*!
-  * \section Stabilization_Flowcharts Video Stabilization Flowcharts
-  *
-  * \subsection Stabilization_Process_Overview Stabilization Process Overview
-  * \verbatim
-                     /-------------/
-                    /  Open Video /
-                   /-------------/
-                           |
-                           v
-               +---------------------------+
-               |  Stabilization Process    |
-               +---------------------------+
-                  |                  |
-                  v                  v
-    /---------------------/  /------------------/
-   /  Playback Process   /  /  Export Process  /
-  /---------------------/  /------------------/
-  * \endverbatim
-  *
-  * \subsection Stabilization_Process Stabilization Process
-  * \verbatim
-              +------<--------+
-              v               |
-     +-------------------+    |
-     |  Configuration    |    |
-     +-------------------+    |
-              v               |
-     +-------------------+    |
-     |    Update         |    |
-     +-------------------+    |
-              v               |
-     +-------------------+    |
-     |  Render Frame     |    |
-     +-------------------+    |
-              v               |
-              :----->---------+
-  * \endverbatim
-  *
-  * \subsection Configuration Configuration
-  * \verbatim
-    +-------------------------+ Yes +--------------+
-    | Video settings changed? |---->| Delete GMP   |
-    | e.g., FieldOrder, Rate, |     +--------------+
-    | Size, Start-Endtime     |            |
-    +-------------------------+            v
-               |                           |
-               v                           |
-    +-------------------------+ Yes +--------------+
-    | If GMP == NULL?         |---->| Create GMP   |
-    +-------------------------+     +--------------+
-               |                           v
-               v                           |
-    +------------------------------+       |
-    | Set Properties               |       |
-    | to GMP or T_SettingsB        |       |
-    |------------------------------|       |
-    | Camera Intrinsic        <1>  |       |
-    | Apply Stabi Profile    <16>  |       |
-    | T_SettingsB Value       <3>  |       |
-    | Other settings         <4>   |       |
-    +------------------------------+ <-----+
-  * \endverbatim
-  *
-  * \subsection Update Update
-  * \verbatim
-   +-----------------------------+
-   | What is to be updated? <5>  |
-   |-----------------------------|
-   | Analysis required?          | Yes +--------------------+
-   |                             +---->| Analyze Video <6>  |
-   |                             |     +--------------------+
-   |                             |              v
-   | Apply required?             | Yes +--------------------+
-   |                             +---->| Apply Settings <7> |
-   +-----------------------------+     +--------------------+
-               |                                v
-               v                                |
-   +-----------------------------+              |
-   | Apply instant Settings <8>  |              |
-   +-----------------------------+              |
-               |                                |
-               +--------------<-----------------+
-  * \endverbatim
-  *
-  * \subsection Analyze_Video Analyze Video
-  * \verbatim
-  +-------------------------+
-  | Update:                 |
-  | - Camera Intrinsic <1>  |
-  | - Stabi Profile   <16>  |
-  | - T_SettingsB           |
-  +-------------------------+
-            |
-            v
-   +-----------------+       +---------------------------------+
-   | For Each Frame  +-----> |      Analyze Video Frame        |
-   +-----------------+       |---------------------------------|
-                             | +----------------------------+  |
-                             | | Read Source Frame          |  |
-                             | +----------------------------+  |
-                             |              v                  |
-                             | +----------------------------+  |
-                             | | Analyze Frame <13>         |  |
-                             | +----------------------------+  |
-                             +---------------------------------+
-  * \endverbatim
-  *
-  * \subsection Export_Process Export Process
-  * \verbatim
-    /------------------/
-   / Create Encoder   /
-  /------------------/
-            |
-            v
-   +-----------------+       +---------------------------------+
-   | For Each Frame  +-----> |           Render Frame          |
-   +-----------------+       |---------------------------------|
-                             | +----------------------------+  |
-                             | | Read Source Frame          |  |
-                             | +----------------------------+  |
-                             |              v                  |
-                             | +----------------------------+  |
-                             | | Create Target Frame Buffer |  |
-                             | +----------------------------+  |
-                             |              v                  |
-                             | +----------------------------+  |
-                             | | Render Stabilized Frame    |  |
-                             | | <12>                       |  |
-                             | +----------------------------+  |
-                             |              v                  |
-                             | +----------------------------+  |
-                             | | Encode Target Frame        |  |
-                             | +----------------------------+  |
-                             +---------------------------------+
-            |
-            v
+ ==========================================================
+ =           Stabilization Process Overview               =
+ ==========================================================
+
+                    /-------------/
+                   /  Open Video /
+                  /-------------/
+                          |
+                          +------------------<------+
+                          v                         |
+              +---------------------------+         |
+              ||  Stabilization Process  ||         |
+              +---------------------------+         |
+                 |                  |               |
+                 v                  v               ^
+   /---------------------/  +------------------+    |
+  /  Playback Process   /   || Export Process ||    |
+ /---------------------/    +------------------+    |
+           v                        v               |
+           |                        |               |
+           +------------>-----------+----->---------+
+
+
+
+
+
+ ===============================================================
+ =                  Stabilization Process                      =
+ ===============================================================
+
+             +------<--------+
+             v               |
+    +-------------------+    |
+    ||  Configuration  ||    |
+    +-------------------+    |
+             |               |
+             v               |
+    +-------------------+    |
+    ||    Update       ||    |
+    +-------------------+    ^
+             |               |
+ +----->-----+               |
+ |           v               |
+ |   +------------------+    |
+ |   |  Render Frame    |    |
+ |   +-------+----------+    |
+ |           v               |
+ +---<-------:----->---------+
+
+
+
+
+ ===============================================================
+ =                  Configuration                              =
+ ===============================================================
+
+   +-------------------------+  Yes +--------------+
+   | Video settings changed? |----->| Delete GMP   |
+   | Such: FieldOrder, Rate, |      +--------------+
+   | Size, Start-Endtime, ...|             |
+   +-------------------------+             |
+              |                            |
+              v                            v
+   +-------------------------+  Yes +--------------+
+   | If GMP == NULL          |----->| Create GMP   |
+   +-------------------------+      +--------------+
+              |                            v
+              +-------------<--------------+
+              v
+   +------------------------------+
+   | Set Properties               |
+   | to GMP or/and T_SettingsB    |
+   |------------------------------|
+   | Camera Intrinsic        < 1> |
+   | Apply Stabi Profile     <16> |
+   | T_SettingsB Value       < 3> |
+   | etc.                    < 4> |
+   +------------------------------+
+
+
+
+
+
+
+
+ ===============================================================
+ =                     Update < 9>                             =
+ ===============================================================
+
+  +-----------------------------+
+  | What is to be updated? < 5> |
+  |-----------------------------|      +----------------------+
+  |          Analysis required? +----->|| Analyze Video < 6> ||
+  |                             |      +----------------------+
+  |                             |              v
+  |                             |      +----------------------+
+  |             Apply required? +----->| Apply Settings < 7>  |
+  +-----------------------------+      +----------------------+
+              |                                v
+              v                                |
+  +-----------------------------+              |
+  | Apply instant Settings < 8> |              |
+  +-----------------------------+              |
+              |                                |
+              +--------------<-----------------+
+              |
+              v
+
+
+
+
+
+ ===============================================================
+ =                  Analysis Video <6>                         =
+ ===============================================================
+
+ +-------------------------+
+ | Update:                 |
+ |- Camera Intrinsic  < 1> |
+ |- Stabi Profile     <16> |
+ |- T_SettingsB            |
+ +-------------------------+
+           |
+           |              +------------------------------------+
+           |              |      Analyze Video Frame           |
+           |              |------------------------------------|
+           |              |   +----------------------------+   |
+           v           +----> |    Read Source Frame       |   |
+  +-----------------+  ^  |   +----------------------------+   |
+  |  For Each Frame +--:  |               v                    |
+  +--------+--------+  ^  |   +----------------------------+   |
+           |           |  |   |  Analyze Frame             |   |
+           v           +----< |  <13>                      |   |
+                          |   +----------------------------+   |
+                          +------------------------------------+
+
+
+
+
+
+
+ ===============================================================
+ =                      Export Process <11>                    =
+ ===============================================================
+
+   /------------------/
+  /  Create Encoder  /
+ /------------------/
+           |              +------------------------------------+
+           |              |           Render Frame             |
+           |              |------------------------------------|
+           |              |   +----------------------------+   |
+           |           +----> |    Read Source Frame       |   |
+           |           |  |   +----------------------------+   |
+           |           |  |                v                   |
+           |           |  |   +----------------------------+   |
+           v           |  |   | Create Target Frame Buffer |   |
+  +-----------------+  ^  |   +----------------------------+   |
+  |  For Each Frame +--:  |                v                   |
+  +--------+--------+  ^  |   +----------------------------+   |
+           |           |  |   |  Render stabilized Frame   |   |
+           |           |  |   |  <12>                      |   |
+           |           |  |   |                            |   |
+           |           |  |   |       Source-Frame         |   |
+           |           |  |   |            v               |   |
+           |           |  |   |        Operation           |   |
+           |           |  |   |            v               |   |
+           |           |  |   |       Target-Frame         |   |
+           |           |  |   +----------------------------+   |
+           |           |  |                v                   |
+           |           |  |   +----------------------------+   |
+           |           +----< |    Encode Target Frame     |   |
+           |              |   +----------------------------+   |
+           v              +------------------------------------+
     /-----------------/
    / Close Encoder   /
   /-----------------/
-  * \endverbatim
-  *
-  * \subsection Mercalli_Data_Stream Mercalli Data Stream
-  * \verbatim
-  +--------------------------------------------------------+
-  |                Using Data Stream                       |
-  |            (GMP not required)                          |
-  +--------------------------------------------------------+
-  |                                                        |
-  | +--------------------------+ Yes                       |
-  | | if DataStream == NULL?   +--->----------+            |
-  | +--------------------------+              |            |
-  |              | No                         v            |
-  |              v                            |            |
-  | +--------------------------+ Yes +-----------------+   |
-  | | if Update required? <5>  +---->| Create / Update > > > >+
-  | +--------------------------+     | DataStream <14> |   |  v
-  |              | No                +-----------------+   |  v
-  |              |                            v            |  v
-  |              +-----------<----------------+            |  v
-  |              v                                         |  v
-  | +--------------------------+                           |  v
-  | | Render Frame <12>        |                           |  v
-  | +--------------------------+                           |  v
-  +--------------------------------------------------------+  v
-                                                              v
-  +--------------------------------------------------------+  v
-  |           Create / Update Data Stream                  | <+
-  |               (GMP required)                           |
-  +--------------------------------------------------------+
-  |                                                        |
-  | +--------------------------+ Yes +-----------------+   |
-  | | if DataStream != NULL?   +---->| Free DataStream |   |
-  | +-------------+------------+     | <15>            |   |
-  |               | No               +-----------------+   |
-  |               |                           v            |
-  |               +------------<--------------+            |
-  |               v                                        |
-  | +------------------------------+                       |
-  | | Stabilization Process <9>    |                       |
-  | +------------------------------+                       |
-  |              v                                         |
-  | +------------------------------+                       |
-  | | Create and Update DataStream |                       |
-  | | <14>                         |                       |
-  | +------------------------------+                       |
-  +--------------------------------------------------------+
 
-  * \endverbatim
-  *
-  * \note References:
-  * - <1>  MercalliSetCameraIntrinsic()
-  * - <3>  MercalliApplyProfile()
-  * - <4>  EnableGlobFrameRS(), etc.
-  * - <5>  VideoStabilizationUpdateRequirement()
-  * - <6>  VideoStabilizationAnalysis()
-  * - <7>  VideoStabilizationApplySettings()
-  * - <8>  VideoStabilizationQuickApplySettings()
-  * - <9>  VideoStabilizationUpdate()
-  * - <11> VideoStabilizationExport()
-  * - <12> VideoStabilizationRenderFrame()
-  * - <13> MercalliGmpScanImage()
-  * - <14> UpdateMercalliDataStream()
-  * - <15> MercalliFreeDataStream()
-  * - <16> VideoStabilizationApplyStabiProfile()
+
+
+
+ ==========================================================
+ =                  Mercalli Data Stream                  =
+ ==========================================================
+
+ +--------------------------------------------------------+
+ |                   Using DataStream                     |
+ |                 ( GMP not required )                   |
+ |--------------------------------------------------------|
+ |                                                        |
+ |  +--------------------------+ Yes                      |
+ |  | if DataStream == NULL?   |--->----------+           |
+ |  +--------------------------+              |           |
+ |              | No                          |           |
+ |              v                             v           |
+ |  +--------------------------+ Yes +-----------------+  |
+ |  | if Update required?  <5> |---->| Create / Update > > > > > > +
+ |  +--------------------------+     | DataStream      |  |        v
+ |              | No                 +-----------------+  |
+ |              |                             v           |        v
+ |              |                             |           |
+ |              +-----------<-----------------+           |        v
+ |              v                                         |
+ |  +--------------------------+                          |        v
+ |  | Render Frame <12>        |                          |
+ |  +--------------------------+                          |        v
+ |                                                        |
+ +--------------------------------------------------------+        v
+
+                                                                   v
+
+ +--------------------------------------------------------+        v
+ |               Create / Update DataStream               | < < <  +
+ |                  ( GMP required )                      |
+ |--------------------------------------------------------|
+ |                                                        |
+ |  +------------------------+ Yes  +-----------------+   |
+ |  | if DataStream != NULL? |----->| Free DataStream |   |
+ |  +----------+-------------+      | <15>            |   |
+ |             | No                 +-----------------+   |
+ |             |                             v            |
+ |             |                             |            |
+ |             +------------<----------------+            |
+ |             v                                          |
+ |  +------------------------------+                      |
+ |  | Stabilization Process <9>    |                      |
+ |  +------------------------------+                      |
+ |             |                                          |
+ |             v                                          |
+ |  +------------------------------+                      |
+ |  | Create and Update DataStream |                      |
+ |  | <14>                         |                      |
+ |  +------------------------------+                      |
+ |                                                        |
+ +--------------------------------------------------------+
+
+
+
+ Footer:
+ < 1>  MercalliSetCameraIntrinsic()
+ < 3>  MercalliApplyProfile()
+ < 4>  EnableGlobFrameRS(), etc.
+ < 5>  see VideoStabilizationUpdateRequirement()
+ < 6>  see VideoStabilizationAnalysis()
+ < 7>  see VideoStabilizationApplySettings()
+ < 8>  see VideoStabilizationQuickApplySettings()
+ < 9>  see VideoStabilizationUpdate()
+ <11>  see VideoStabilizationExport()
+ <12>  see VideoStabilizationRenderFrame()
+ <13>  see MercalliGmpScanImage()
+ <14>  see UpdateMercalliDataStream()
+ <15>  see MercalliFreeDataStream()
+ <16>  see VideoStabilizationApplyStabiProfile()
+
   */
 #pragma endregion
 
@@ -437,12 +487,9 @@ HRESULT VideoStabilizationSetCam(CVideoStabilizationParam& param);
 /*! \brief Applies a stabilization profile.
  * \param param Stabilization parameters
  * \param id    Profile ID:
- *   - 35: Universal
- *   - 38: Glide Cam
- *   - 40: Rock Steady
- *   - 42: Intelli-Universal (Best, includes FinPathFlags_SupportVariation)
- *   - 44: Action Cam
- *   - 45: Hyper-lapse (up to 4x acceleration)
+ *   - 42: Turbo (includes FinPathFlags_SupportVariation)
+ *   - 44: AI (includes FinPathFlags_SupportVariation)
+ *   - 45: AI3D (includes FinPathFlags_SupportVariation)
  *   - 46: Hyper-lapse (up to 10x acceleration)
  * \return HRESULT indicating success or failure
  */

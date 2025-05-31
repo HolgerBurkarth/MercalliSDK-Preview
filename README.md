@@ -5,9 +5,12 @@ Version: 6.11 (2025-05-30)
 
 proDAD Mercalli is a powerful video stabilization SDK designed to enhance the quality of video footage by reducing unwanted camera movements and vibrations. It provides advanced algorithms for stabilizing videos captured from various devices, including smartphones, action cameras, and drones. The SDK also includes "Unjello" technology for correcting CMOS sensor distortions (like rolling shutter effects and wobble) and supports fisheye lens correction.
 
+<div style="page-break-after: always;"></div>
+
 ## Contents:
 - [Overview](#overview)
 - [Contact Information](#contact-information)
+- [What is Mercalli](#what-is-mercalli)
 - [SDK Preview vs. Full](#sdk-preview-vs-full)
 - [SDK Features](#sdk-features)
   - [Key Features](#key-features)
@@ -16,6 +19,18 @@ proDAD Mercalli is a powerful video stabilization SDK designed to enhance the qu
 - [Quick Start](#quick-start)
 - [SDK Usage Models: `MercalliCli` vs. Direct Integration](#sdk-usage-models-mercallicli-vs-direct-integration)
 - [Core SDK Concepts](#core-sdk-concepts)
+- [Key API Functions and Methods]( #key-api-functions-and-methods)
+  - [1. Mercalli SDK Core API (from `mercalli.h`)](#1-mercalli-sdk-core-api-from-mercallih)
+    - [Library Management & Initialization](#library-management--initialization)
+    - [Global Motion Path (GMP) Management & Analysis (Stabilization)](#global-motion-path-gmp-management--analysis-stabilization)
+    - [Unjello Management & Processing (CMOS Correction)](#unjello-management--processing-cmos-correction)
+    - [DataStream Management](#datastream-management)
+    - [Rendering](#rendering)
+    - [Utility & Configuration (Camera Intrinsics, Profiles)](#utility--configuration-camera-intrinsics-profiles)
+  - [2. MercalliCli Demo Implementation API (from `VideoStabilization.h`, `VideoUnjello.h`, `Media.h`)](#2-mercallicli-demo-implementation-api-from-videostabilizationh-videounjelloh-mediah)
+    - [Stabilization Workflow Helpers (`VideoStabilization.h`)](#stabilization-workflow-helpers-videostabilizationh)
+    - [Unjello Workflow Helpers (`VideoUnjello.h`)](#unjello-workflow-helpers-videounjelloh)
+    - [Example Media Handling Abstraction (`Media.h`)](#example-media-handling-abstraction-mediah)
 - [Workflow Overviews](#workflow-overviews)
   - [Video Stabilization (Smooth Camera Path)](#video-stabilization-smooth-camera-path)
   - [CMOS Defect Removal (Unjello)](#cmos-defect-removal-unjello)
@@ -28,10 +43,26 @@ proDAD Mercalli is a powerful video stabilization SDK designed to enhance the qu
 - [License Management](#license-management)
 - [Troubleshooting / Common Issues](#troubleshooting--common-issues)
 - [Process Flowcharts](#process-flowcharts)
-    - [Overall SDK Usage Approach](#overall-sdk-usage-approach)
-    - [Video Stabilization Workflow (Smooth Camera Path)](#video-stabilization-workflow-smooth-camera-path)
-    - [CMOS Defect Removal (Unjello) Workflow](#cmos-defect-removal-unjello-workflow)
+  - [1. Overall SDK Usage Approach](#overall-sdk-usage-approach)
+  - [2. Video Stabilization Workflow (Smooth Camera Path)](#video-stabilization-workflow-smooth-camera-path)
+    - [2.1 Stabilization Process Overview](#stabilization-process-overview)
+    - [2.2 Stabilization Process](#stabilization-process)
+    - [2.3 Configuration Process Overview](#configuration-process-overview)
+    - [2.4 Update < 9> Process Overview](#update-9-process-overview)
+    - [2.5 Analysis < 6> Process Overview](#analysis-6-process-overview)
+    - [2.6 Export <11> stabilized video Process Overview](#export-11-stabilized-video-process-overview)
+    - [2.7 Data Stream Process Overview](#data-stream-process-overview)
+    - [2.8 Hyper-lapse Process <4>](#hyper-lapse-process-4)
+  - [3. CMOS Defect Removal (Unjello) Workflow](#cmos-defect-removal-unjello-workflow)
+    - [3.1 Unjello Process Overview](#unjello-process-overview)
+    - [3.2 Instant Unjello](#instant-unjello)
+    - [3.3 Reflected Unjello](#reflected-unjello)
+    - [3.4 Configuration](#configuration)
+    - [3.5 Analysis Video <16>](#analysis-video-16)
+    - [3.6 Export Process <11>](#export-process-11)
 
+
+<div style="page-break-after: always;"></div>
 
 ## Overview: Your Solution for Professional Video Stabilization and Correction
 
@@ -86,6 +117,18 @@ D-78194 Immendingen, Germany
 
 Homepage: https://www.prodad.com/  
 Author: Holger Burkarth (burkarth at prodad.com)  
+
+
+
+## What is Mercalli?
+
+### Playlist of Mercalli Videos on YouTube:
+[Stabilize shaky shot and remove CMOS wobble](https://youtu.be/EF2PYhgQqE4)  
+[What Is CMOS Jello or Wobble?](https://youtu.be/NH2W7AR3e2k)
+
+[Mercalli v6 AI - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQCM_T8NS9kmOitzfblmtY9_)  
+[More Mercalli - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQAddwDdGzb7xILWJ29pAgZR)
+
 
 <div style="page-break-after: always;"></div>
 
@@ -300,10 +343,13 @@ There are two primary ways to leverage the Mercalli SDK:
         *   It's crucial to correctly populate the `Plane[0..3].Data` and `Plane[0..3].Pitch` fields according to the specified `Format`. For planar formats, multiple `Plane` entries will be used.
 > [!IMPORTANT]
 > For `Bitmap_Type`, the SDK expects the **Top-Line to be the First-Line** in memory (i.e., not bottom-up like Windows DIBs).
-> However, when working with a bottom-up image, the values for Pitch and Data can be adjusted accordingly to align with this requirement.
+> **Handling Bottom-Up Images:** If your source image data is in a "bottom-up" format (where the last line in memory is the top-most visual line, common for Windows DIBs/BMPs), you **must** adjust the `Bitmap_Type` parameters to present the image to the SDK as "top-line first". This typically involves:
+>    1. Pointing `Bitmap_Type.Plane[0].Data` to the **start of the last scanline** in your bottom-up buffer.
+>    2. Using a **negative pitch** (`Bitmap_Type.Plane[0].Pitch = -abs(your_actual_pitch)`).
+> This tells the SDK to read the scanlines in reverse order, effectively treating the bottom-up image as top-line first.
 
 > [!CAUTION]
->   It is important to note that images with incorrect alignment will always lead to faulty CMOS corrections.
+>   **Critical for CMOS Correction (Unjello):** Providing image data with an incorrect row order (i.e., passing a bottom-up image as if it were top-line first without the adjustments above, or vice-versa) will inevitably lead to **incorrect or failed CMOS distortion correction (Unjello)**. The Unjello algorithms rely heavily on the precise spatial and temporal relationship of pixel rows. Incorrect row order can result in bizarre warping artifacts or the appearance of *new* distortions rather than correction. Standard stabilization might also be affected, but Unjello is particularly sensitive.
 
 *   **`T_SettingsB`**:
     *   A structure holding all parameters that control the stabilization process (e.g., smoothing factors, border handling, view scale).
@@ -333,6 +379,180 @@ There are two primary ways to leverage the Mercalli SDK:
 
 *   **Pixel Formats (`GfxFormat_Enum`)**:
     *   The SDK supports a variety of pixel formats for input and output. Common ones include `FMT_BGRA8`, `FMT_BGR8`, `FMT_YUV420P`, `FMT_UYVY8`, `FMT_YUYV8`. Check the enum definition for the full list and comments on byte order and planes.
+
+<div style="page-break-after: always;"></div>
+
+## Key API Functions and Methods
+
+This section provides an overview of important functions and methods. It distinguishes between the core Mercalli SDK API (defined in `mercalli.h`) and the helper functions used within the `MercalliCli` demo application (defined in files like `VideoStabilization.h`, `VideoUnjello.h`).
+
+### 1. Mercalli SDK Core API (from `mercalli.h`)
+
+These are the fundamental functions provided by the Mercalli SDK library for direct integration.
+
+#### Library Management & Initialization
+
+*   **`UINT64 MercalliVersion()`**:
+    *   Returns the version of the Mercalli SDK library. Crucial for checking compatibility.
+    *   Format: `0xMMMMmmmmRRRRpppp` (Main, minor, Revision, Patch).
+*   **`bool MercalliUsable()`**:
+    *   Checks if the loaded SDK version is compatible with the `MERCALLI_INTERFACE_VERSION` defined in `mercalli.h`. Returns `true` if compatible.
+*   **`HRESULT MercalliAddLicense(const char* pText)` / `MercalliAddLicense(const UINT8* pBuffer, SINT32 length)`**:
+    *   Adds a license key to unlock SDK functionality. Must be called successfully before most other SDK operations.
+*   **`HRESULT MercalliSetValue(SINT32 type, const void* pArg, ...)` / `HRESULT MercalliGetValue(SINT32 type, const void* pArg, ...)`**:
+    *   Generic functions for setting and getting library-level parameters, including advanced license activation features (using `LibValueType_Enum`).
+
+#### Global Motion Path (GMP) Management & Analysis (Stabilization)
+
+The `T_GlobalMotionPath` (GMP) is the central object for video stabilization.
+
+*   **`HRESULT MercalliCreateGmp(T_GlobalMotionPath** pGMP, SINT64 numOfFrames, UINT32 flags)`**:
+    *   Creates a new, empty GMP instance.
+    *   `numOfFrames`: Total number of frames (or fields if interlaced) this GMP will handle.
+    *   `flags`: Configuration like `NewGMPFlags_Fields` for interlaced video.
+*   **`HRESULT MercalliDeleteGmp(T_GlobalMotionPath* pGMP)`**:
+    *   Deletes a GMP instance and frees associated resources.
+*   **`HRESULT MercalliSetCameraIntrinsic(T_GlobalMotionPath* pGMP, SINT32 level, const T_CameraIntrinsic* pCam)`**:
+    *   Sets camera lens intrinsic parameters for the GMP.
+    *   `level`: `CamIticLev_Source` (for input video) or `CamIticLev_Target` (for desired output/undistortion).
+    *   `pCam`: Pointer to a `T_CameraIntrinsic` structure, or `NULL` to reset.
+*   **`BOOL MercalliApplyProfile(SINT32 index, T_SettingsB* pSettings)`**:
+    *   Applies a predefined stabilization profile (which populates a `T_SettingsB` structure).
+    *   `index`: Profile ID (e.g., 42 for "Intelligent-Universal").
+    *   `pSettings`: Pointer to a `T_SettingsB` structure to be filled.
+*   **`HRESULT MercalliGmpScanImage(T_GlobalMotionPath* pGMP, SINT64 frameNumber, const T_GmpScanImageParam* pParam)`**:
+    *   Analyzes a single video frame and adds its motion data to the GMP.
+    *   `frameNumber`: 0-based index of the frame within the GMP's range.
+    *   `pParam`: Contains the `Bitmap_Type` image data, current `T_SettingsB`, frame rate, and field order.
+*   **`HRESULT MercalliGmpApplySettings(T_GlobalMotionPath* pGMP, SINT32 flags, const T_SettingsB* pSettings, T_SettingsB* pAdjustedSettings)`**:
+    *   Finalizes the stabilization path based on the analyzed motion in the GMP and the provided `T_SettingsB`. This is where the smoothing calculation happens.
+    *   `flags`: `FinishPathFlags_Enum` (e.g., `FinPathFlags_SupportVariation`).
+    *   `pAdjustedSettings`: Output for settings potentially modified by the variation logic.
+*   **`HRESULT MercalliGetGmpValue(const T_GlobalMotionPath* pGMP, SINT32 type, ..., void* pResult, ...)` / `MercalliSetGmpValue(T_GlobalMotionPath* pGMP, SINT32 type, ...)`**:
+    *   Generic functions to get/set various properties associated with a GMP instance using `GmpValueType_Enum` (e.g., fade-in/out counts, analysis progress).
+
+#### Unjello Management & Processing (CMOS Correction)
+
+The `T_Unjello` object handles CMOS sensor defect correction.
+
+*   **`HRESULT MercalliCreateUnjello(T_Unjello** ppUJ, SINT32 width, SINT32 height, SINT32 fieldOrder, FLOAT32 par, FLOAT32 rate)`**:
+    *   Creates a new Unjello instance for a specific video geometry and rate.
+*   **`HRESULT MercalliDeleteUnjello(T_Unjello* pUJ)`**:
+    *   Deletes an Unjello instance.
+*   **`HRESULT MercalliSetUnjelloFrameCallback(T_Unjello* pUJ, UnjelloFrameCallback value)`**:
+    *   Registers your callback function (`UnjelloFrameCallback`) that the SDK will call to request video frames.
+*   **`HRESULT MercalliSetUnjelloCustomData(T_Unjello* pUJ, UINT_PTR value)`**:
+    *   Sets a user-defined pointer/value that can be retrieved within callbacks, useful for passing application context.
+*   **`HRESULT MercalliSetUnjelloFrameNumberRange(T_Unjello* pUJ, SINT64 startFrameNumber, SINT64 endFrameNumber)`**:
+    *   Defines the range of frames the Unjello instance will operate on or analyze.
+*   **`HRESULT MercalliSetUnjelloMethod(T_Unjello* pUJ, UINT32 value)`**:
+    *   Sets the Unjello processing method (from `UnjelloMethodType_Enum`, e.g., `UJMthTyp_PTek_OF_Fast`).
+*   **`HRESULT MercalliSetUnjelloShutterSpeed(T_Unjello* pUJ, FLOAT32 value)` / `MercalliSetUnjelloEnableAutoShutterSpeed(T_Unjello* pUJ, BOOL value)`**:
+    *   Manages shutter speed settings for CMOS correction, either manually or by enabling auto-detection.
+*   **`HRESULT MercalliEstimateUnjelloShutterSpeed(T_Unjello* pUJ, UnjelloProgressCallback pProgress)`**:
+    *   Initiates an analysis pass to estimate the sensor's shutter speed. Requires the `UnjelloFrameCallback` to be set up to provide frames.
+    *   `pProgress`: Optional callback for progress updates.
+*   **`HRESULT MercalliGetUnjelloValue(const T_Unjello* pUJ, SINT32 type, ..., void* pResult, ...)` / `MercalliSetUnjelloValue(T_Unjello* pUJ, SINT32 type, ...)`**:
+    *   Generic functions to get/set various properties of an Unjello instance using `UnjelloValueType_Enum`.
+
+#### DataStream Management
+
+`T_MercalliDataStream` is used to store and reuse analysis results for efficient rendering.
+
+*   **`HRESULT MercalliGetDataStreamTag(const T_GlobalMotionPath* pGMP, const T_MercalliStreamTag* pSourceTags, T_MercalliStreamTag* pTargetTags, SINT32 count)`**:
+    *   Queries the sizes of data blocks that will be stored in the DataStream for given tags.
+*   **`HRESULT MercalliCalcDataStreamSize(UINT64* pSize, const T_MercalliStreamTag* pTags, SINT32 count)`**:
+    *   Calculates the total byte size required for a `T_MercalliDataStream` containing the specified tags.
+*   **`HRESULT MercalliBuildDataStream(const T_GlobalMotionPath* pGMP, void* pBuffer, UINT64 bufferSize, const T_MercalliStreamTag* pTags, SINT32 count)`**:
+    *   Populates a pre-allocated buffer with DataStream content, effectively serializing analysis results from the GMP.
+*   **`T_MercalliDataStream* MercalliCreateDataStream(const T_GlobalMotionPath* pGMP, const T_MercalliStreamTag* pTags, SINT32 count, HRESULT* pHR)` (Inline Helper)**:
+    *   Convenience inline function that allocates memory and calls the above three functions to create a fully populated `T_MercalliDataStream`.
+*   **`void MercalliFreeDataStream(T_MercalliDataStream* p)` (Inline Helper)**:
+    *   Frees the memory allocated by `MercalliCreateDataStream`.
+*   **`HRESULT MercalliGetDataStreamItem(T_MercalliDataStream* pStream, const GUID& key, void** pPtr, UINT64* pSize)` (Inline Helper)**:
+    *   Retrieves a pointer to a specific data block (e.g., media info, frame matrices) within a DataStream using its `GUID` key.
+
+#### Rendering
+
+*   **`HRESULT MercalliStreamRenderFrame(const T_MercalliDataStream* pDataStream, SINT64 frameNumber, const T_MercalliRenderFrameParam* pParam)`**:
+    *   Renders a stabilized video frame using the pre-calculated data from a `T_MercalliDataStream`. This is the primary rendering function for stabilization.
+    *   `frameNumber`: 0-based Mercalli frame index.
+    *   `pParam`: Contains source (`Src`) and target (`Tar`) `Bitmap_Type` structures, and extra render parameters.
+*   **`HRESULT MercalliUnjelloRenderFrame(T_Unjello* pUJ, SINT64 frameNumber, const T_UnjelloRenderFrameParam* pParam)`**:
+    *   Renders a CMOS-corrected (Unjello'd) frame.
+    *   `frameNumber`: Media frame number.
+    *   `pParam`: Contains the target `Bitmap_Type` (`Image`) and optionally the source `Bitmap_Type` (`Src`) if the frame callback is not used for providing the source.
+
+#### Utility & Configuration (Camera Intrinsics, Profiles)
+
+*   **`SINT32 MercalliGetStaticCameraIntrinsicNums()`**:
+    *   Returns the number of built-in static camera intrinsic profiles.
+*   **`HRESULT MercalliGetStaticCameraIntrinsic(SINT32 index, T_CameraIntrinsic* pCam)`**:
+    *   Retrieves a specific built-in camera intrinsic profile by its index.
+*   **`SINT32 MercalliGetProfileNums()`**:
+    *   Returns the number of predefined stabilization profiles.
+*   `(Inline Functions for Settings Comparison)`:
+    *   `bool MustRescan(const T_SettingsB* _old, const T_SettingsB* _new)`
+    *   `bool MustSmoothCalc(const T_SettingsB* _old, const T_SettingsB* _new)`
+    *   These helpers determine if changes in `T_SettingsB` require a full video re-analysis or just a recalculation of the smooth path.
+
+### 2. MercalliCli Demo Implementation API (from `VideoStabilization.h`, `VideoUnjello.h`, `Media.h`)
+
+These functions are part of the `MercalliCli` example application and demonstrate how to build higher-level workflows around the core SDK API. **They are not part of the Mercalli SDK library itself.**
+
+#### Stabilization Workflow Helpers (`VideoStabilization.h`)
+
+These functions in `VideoStabilization.cpp` manage the `CVideoStabilizationParam` structure and orchestrate the stabilization process.
+
+*   **`HRESULT VideoStabilizationUpdate(CVideoStabilizationParam& param)`**:
+    *   Main update logic. Checks if re-analysis or re-smoothing is needed (using `VideoStabilizationUpdateRequirement`) and calls `VideoStabilizationAnalysis` and/or `VideoStabilizationApplySettings` accordingly.
+*   **`HRESULT VideoStabilizationAnalysis(CVideoStabilizationParam& param)`**:
+    *   Manages the frame-by-frame analysis loop, decoding frames (via `IVideoDecoder` from `Media.h`) and calling `MercalliGmpScanImage()`.
+*   **`HRESULT VideoStabilizationApplySettings(CVideoStabilizationParam& param)`**:
+    *   Calls `MercalliGmpApplySettings()` on the GMP and then updates the `T_MercalliDataStream` using `UpdateMercalliDataStream()`.
+*   **`HRESULT VideoStabilizationExport(CVideoStabilizationParam& param)`**:
+    *   Manages the rendering loop, decoding source frames, preparing target frames, calling `VideoStabilizationRenderFrame()` (which internally calls `MercalliStreamRenderFrame`), and writing output (via `IVideoEncoder`).
+*   **`HRESULT VideoStabilizationRenderFrame(CVideoStabilizationParam& param, SINT64 frameNumber, field_type field, IVideoFrame* pSourceFrame, IVideoFrame* pTargetFrame)`**:
+    *   A wrapper that sets up `T_MercalliRenderFrameParam` and calls `MercalliStreamRenderFrame()` using the `DataStream` from `param`.
+*   **`HRESULT VideoStabilizationApplyStabiProfile(CVideoStabilizationParam& param, SINT32 id)`**:
+    *   Helper to apply a profile to `param.Settings` using `MercalliApplyProfile()`.
+*   **`HRESULT UpdateMercalliDataStream(CVideoStabilizationParam& param)`**:
+    *   Handles the creation/recreation of `param.DataStream` from `param.GMP`.
+
+#### Unjello Workflow Helpers (`VideoUnjello.h`)
+
+These functions in `VideoUnjello.cpp` manage `CVideoUnjelloParam` and the Unjello process.
+
+*   **`HRESULT VideoUnjelloSetup(CVideoUnjelloParam& param)`**:
+    *   Configures the `T_Unjello` instance with callbacks (`MercalliSetUnjelloFrameCallback`, `MercalliSetUnjelloCustomData`).
+*   **`HRESULT VideoUnjelloUpdate(CVideoUnjelloParam& param)`**:
+    *   Sets various Unjello parameters (frame range, method, shutter speed mode) and calls `VideoUnjelloAnalysis()` if shutter speed estimation is enabled.
+*   **`HRESULT VideoUnjelloAnalysis(CVideoUnjelloParam& param)`**:
+    *   Checks if shutter speed estimation is needed and calls `MercalliEstimateUnjelloShutterSpeed()`.
+*   **`HRESULT VideoUnjelloExport(CVideoUnjelloParam& param)`**:
+    *   Manages the rendering loop for Unjello, preparing target frames, calling `VideoUnjelloRenderFrame()` (which internally calls `MercalliUnjelloRenderFrame`), and writing output.
+*   **`HRESULT VideoUnjelloRenderFrame(CVideoUnjelloParam& param, SINT64 frameNumber, field_type field, IVideoFrame* pTargetFrame)`**:
+    *   A wrapper that sets up `T_UnjelloRenderFrameParam` and calls `MercalliUnjelloRenderFrame()`.
+*   **`STDCALLBACK(UnjelloFrame)(T_Unjello* pUJ, const T_UnjelloFrameArguments* pArgs, ...)` (in `VideoUnjello.cpp`)**:
+    *   The **example implementation** of the `UnjelloFrameCallback`. It uses the `IVideoDecoder` (from `Media.h`) to fetch the requested frame and push it to the SDK.
+*   **`STDCALLBACK(UnjelloProgress)(const T_Unjello* pUJ, ...)` (in `VideoUnjello.cpp`)**:
+    *   An **example implementation** of `UnjelloProgressCallback` for displaying progress.
+
+#### Example Media Handling Abstraction (`Media.h`)
+
+`Media.h` defines interfaces for an example media abstraction layer. **This is NOT part of the Mercalli SDK itself.** Implementations would use libraries like FFmpeg, GStreamer, etc.
+
+*   **`struct IVideoDecoder`**: Interface for decoding video frames.
+    *   `HRESULT GetInfo(CMediaInfo* pInfo)`: Gets video metadata.
+    *   `HRESULT ReadFrame(IVideoFrame** ppFrame, SINT64 frameNumber, ...)`: Reads a specific frame.
+*   **`struct IVideoEncoder`**: Interface for encoding video frames.
+    *   `HRESULT WriteFrame(IVideoFrame* pFrame)`: Writes a frame.
+    *   `HRESULT CreateVideoFrame(IVideoFrame** ppFrame, ...)`: Creates a frame buffer suitable for the encoder.
+*   **`struct IVideoFrame`**: Interface representing a single video frame.
+    *   `HRESULT GetInfo(CVideoFrameInfo* pInfo)`: Gets frame details, including a `Bitmap_Type`.
+*   **`HRESULT OpenVideoDecoder(...)` / `HRESULT CreateVideoEncoder(...)` / `HRESULT CreateVideoFrame(...)` (Global functions in `MercalliCli.cpp` or `CreateVideoFrame.cpp`)**:
+    *   Example factory functions that would instantiate concrete decoder/encoder/frame objects.
+
 
 <div style="page-break-after: always;"></div>
 
@@ -516,7 +736,7 @@ MercalliCli_static --source <temp_unjello_video> --target <final_output_video> -
 
 *   **Bitmap Top-Line First**: When preparing `Bitmap_Type` structures, ensure the image data is top-line first (row 0 is the top-most row). This is common for many image processing libraries but different from, for example, bottom-up Windows DIBs.
 > [!CAUTION]
->   It is important to note that images with incorrect alignment will always lead to faulty CMOS corrections.
+>   **Critical for CMOS Correction (Unjello):** Providing image data with an incorrect row order (i.e., passing a bottom-up image as if it were top-line first without the adjustments above, or vice-versa) will inevitably lead to **incorrect or failed CMOS distortion correction (Unjello)**. The Unjello algorithms rely heavily on the precise spatial and temporal relationship of pixel rows. Incorrect row order can result in bizarre warping artifacts or the appearance of *new* distortions rather than correction. Standard stabilization might also be affected, but Unjello is particularly sensitive.
 
 *   **Performance**:
     *   Video analysis (`MercalliGmpScanImage`, `MercalliEstimateUnjelloShutterSpeed`) is computationally intensive.
@@ -865,7 +1085,7 @@ A valid license is required to use the proDAD Mercalli SDK.
     *   If using `AutoShutterSpeed OFF`, make sure `MercalliSetUnjelloShutterSpeed()` is called with a reasonable value.
     *   If using `AutoShutterSpeed ON`, consider running `MercalliEstimateUnjelloShutterSpeed()` first.
     *   Some `UnjelloMethodType_Enum` options require a GPU. If a GPU is not available or suitable, the SDK might fall back or fail. `UJMthTyp_PTek_FP` is a CPU-fallback.
-    *   It is important to note that images with incorrect alignment will always lead to faulty CMOS corrections. See the `Bitmap_Type` section for details on how to correctly set up image data.
+    *   **Incorrect Image Row Order (Top-Line vs. Bottom-Up)**: As detailed in the `Bitmap_Type` section under "Core SDK Concepts", the Mercalli SDK (especially the Unjello CMOS correction) expects image data to be presented as "top-line first". If you are working with bottom-up image sources (like Windows DIBs), ensure you have correctly adjusted the `Bitmap_Type.Plane[0].Data` pointer and `Bitmap_Type.Plane[0].Pitch` (to a negative value) to present the data correctly. Failure to do so will lead to severe artifacts or failed CMOS correction.  
 *   **Crashes or Unexpected Behavior**:
     *   Check for memory corruption, especially around `Bitmap_Type` data pointers.
     *   Ensure all created SDK objects (`T_GlobalMotionPath`, `T_Unjello`, `T_MercalliDataStream`) are properly released.
@@ -875,7 +1095,17 @@ A valid license is required to use the proDAD Mercalli SDK.
     *   Ensure your media decoding/encoding pipeline is efficient.
     *   For Unjello, GPU-accelerated methods (`UJMthTyp_PTek_OF`) are faster if a compatible GPU is present.
     *   The watermarking process can be slow, especially `--cl` if the video is large or has a high resolution.
-
+*   **Frame Jumps or Incorrect Timing with `MercalliCli_static` Output (especially with VFR Media)**:
+    *   **Issue**: You might observe frame skips, stutters, or incorrect temporal order in the video processed by `MercalliCli_static.exe` (or `.bin`), particularly if your source video has a Variable Frame Rate (VFR) or inconsistent per-frame durations (common with screen recordings, some mobile phone footage, or poorly encoded files).
+    *   **Cause**: The example video decoder implemented in `MercalliCli` (often using FFmpeg with basic indexing) may assume a Constant Frame Rate (CFR) for simplicity. It might calculate frame timestamps or indices based on an average or declared frame rate, rather than using precise presentation timestamps (PTS) for each frame. When the actual frame durations deviate, this can lead to mismatches between the requested frame number and the frame actually decoded, resulting in temporal artifacts after Mercalli processing.
+    *   **SDK vs. CLI**: This is typically a limitation of the *example decoder in `MercalliCli`*, not the Mercalli SDK itself. The SDK processes the frames it's given based on their sequence number.
+    *   **Solution/Workaround**:
+        *   **Transcode to CFR**: Before processing with `MercalliCli_static`, consider transcoding your VFR video to a Constant Frame Rate (CFR) using a tool like FFmpeg:
+            ```bash
+            ffmpeg -i your_vfr_video.mp4 -vsync cfr -r <target_framerate> your_cfr_video.mp4
+            ```
+            Then use `your_cfr_video.mp4` as input for `MercalliCli_static`.
+        *   **Direct SDK Integration**: When integrating the Mercalli SDK directly into your application, ensure your video decoder correctly handles VFR. It should provide frames to the SDK in strict presentation order and provide accurate timing information (e.g., frame rate for `T_GmpScanImageParam.Rate` or `MercalliCreateUnjello`) that reflects the intended playback cadence for stabilization. The SDK itself relies on the sequence of frames it receives.
 
 <div style="page-break-after: always;"></div>
 
@@ -888,115 +1118,644 @@ This section provides a visual overview of the primary workflows when using the 
 
 The Mercalli SDK offers two main processing capabilities: Video Stabilization and CMOS Defect Removal (Unjello). These can be used independently or sequentially.
 
-```mermaid
-graph TD
-    A[Start: Input Video] --> B{Process Type?}
-    B --> |Stabilization Only| C[Video Stabilization Workflow]
-    B --> |Unjello Only| D[Unjello Workflow]
-    B --> |Unjello + Stabilization| E[Unjello Workflow]
-    E --> F[Intermediate Video Unjello Output]
-    F --> G[Video Stabilization Workflow using Intermediate Video as Input]
-    C --> Z[Output: Stabilized Video]
-    D --> Z
-    G --> Z
-
-    subgraph Workflow Details
-        C --> |See Stabilization Details| H[Stabilization Details]
-        D --> |See Unjello Details| I[Unjello Details]
-        E --> |See Unjello Details| I
-        G --> |See Stabilization Details| H
-    end
+```text
+===============================================================================
+=                      The three possible methods                             =
+===============================================================================
+          < 1>                       < 2>                       < 3>
+            |                          |                          |
+=========================  =======================   ===========================
+| Video Stabilization   |  | Video Unjello       |   | Remove CMOS + Stabilize |
+| (Smooth Camera Path)  |  | Remove CMOS Effects |   | (Combi)                 |
+=========================  =======================   ===========================
+            v                          v                          v
+   /--------------------/    /--------------------/     /--------------------/
+  /  Open Source Video /    /  Open Source Video /     /  Open Source Video /
+ /--------------------/    /--------------------/     /--------------------/
+            v                          v                          v
++----------------------+   +---------------------+   +-------------------------+
+|  Perform: <10><12>   |   |   Perform: <11><13> |   |      Perform: <11><13>  |
+|  Video Stabilization |   |   Video Unjello     |   |      Video Unjello      |
++-----------+----------+   +---------------------+   +-------------------------+
+            v                          v                          v
+  /--------------------/    /--------------------/      /--------------------/
+ / Write Target Video /    / Write Target Video /      /  Write Temp. Video /
+/--------------------/    /--------------------/      /--------------------/
+                                                                  v
+                                                        /--------------------/
+                                                       /  Open Temp. Video  /
+                                                      /--------------------/
+                                                                  v
+                                                    +--------------------------+
+                                                    |    Perform: <10><12>     |
+                                                    |    Video Stabilization   |
+                                                    +--------------------------+
+                                                                  v
+                                                        /--------------------/
+                                                       / Write Target Video /
+                                                      /--------------------/
 ```
+
+<div style="page-break-after: always;"></div>
+
+### References:
+* < 1> `MercalliCli -s Source.mp4 -t Target.mp4 [additional options] --Stabilize`
+* < 2> `MercalliCli -s Source.mp4 -t Target.mp4 [additional options] --Unjello`
+* < 3> `MercalliCli -s Source.mp4 -t Tmp.mp4 [additional options] --Unjello`  
+   * `MercalliCli -s Tmp.mp4 -t Target.mp4 [additional options] --Stabilize`
+* < 4> `MercalliCli -s Source.mp4 -t Target.mp4 --FrameStep 3 --StabiProfile HyperlapseX4 [additional options] --Stabilize`
+* <10> Stabilization Process by `VideoStabilization.h`
+* <11> Unjello Process by `VideoUnjello.h`
+* <12> see `VideoStabilization()`
+* <13> see `VideoUnjello()`
+* <21> see `VideoStabilizationApplyStabiProfile()`
+* <22> see `MercalliSetCameraIntrinsic()`
+* <23> see `VideoStabilizationUpdate()`
+* <24> see `VideoStabilizationExport()`
+
+-  More Flowchart details at:
+   - `VideoUnjello.h`
+   - `VideoStabilization.h`
+   - `Media.h`
+
 
 *   **Stabilization Only**: Smooths camera motion. See `mercalli.h`, `VideoStabilization.h`.
 *   **Unjello Only**: Corrects CMOS sensor artifacts. See `mercalli.h`, `VideoUnjello.h`.
 *   **Unjello + Stabilization**: Recommended for footage with both types of issues. Process with Unjello first, then stabilize the Unjello output.
 
+<div style="page-break-after: always;"></div>
+
 ### 2. Video Stabilization Workflow (Smooth Camera Path)
 
 This workflow focuses on analyzing camera motion and calculating a new, smoother camera path.
 
-```mermaid
-graph TD
-    AA[Open Source Video] --> AB[Get CMediaInfo: Width, Height, FrameCount, ect.]
-    AB --> AC{GMP Exists and Valid?}
-    AC --> |No| AD[Create GMP: MercalliCreateGmp]
-    AC --> |Yes| AE
-    AD --> AE[Configure GMP]
-    AE --> AF{Re-Analysis Needed? MustRescan}
-    AF --> |Yes| AG[Analysis Phase]
-    AF --> |No| AH
 
-    subgraph Analysis [Analysis Phase]
-        direction TB
-        AG1[For Each Source Frame to Analyze]
-        AG2[Read Frame into Bitmap_Type]
-        AG3[Scan Frame: MercalliGmpScanImage]
-        AG1 --> AG2 --> AG3 --> AG1
-        AG3 --> AG_End((End Analysis Loop))
-    end
+### 2.1 Stabilization Process Overview
+```text
+                    /-------------/
+                   /  Open Video /
+                  /-------------/
+                          |
+                          +------------------<------+
+                          v                         |
+              +---------------------------+         |
+              ||  Stabilization Process  ||         |
+              +---------------------------+         |
+                 |                  |               |
+                 v                  v               ^
+   /---------------------/  +------------------+    |
+  /  Playback Process   /   || Export Process ||    |
+ /---------------------/    +------------------+    |
+           v                        v               |
+           |                        |               |
+           +------------>-----------+----->---------+
 
-    AG_End --> AH{Re-Smoothing Needed? MustSmoothCalc or Analysis was done}
-    AH --> |Yes| AI[Apply Settings to Finalize: MercalliGmpApplySettings]
-    AH --> |No| AJ
-    AI --> AJ[Create/Update: MercalliCreateDataStream, MercalliBuildDataStream]
-    AJ --> AK[Render/Export Phase]
-
-    subgraph Render [Render/Export Phase]
-        direction TB
-        AK1[For Each Frame to Render]
-        AK2[Read Source Frame into Bitmap_Type]
-        AK4[Render Stabilized Frame: MercalliStreamRenderFrame]
-        AK5[Encode/Display Target Frame]
-        AK1 --> AK2 --> AK4 --> AK5 --> AK1
-        AK5 --> AK_End((End Render Loop))
-    end
-
-    AK_End --> AL[Cleanup: MercalliDeleteGmp]
-
-    classDef sdkCall fill:#e6ffe6,stroke:#333,stroke-width:2px
-    class AD,AE1,AE2,AE3,AG3,AI,AJ,AK4,AL sdkCall
 ```
 
-*   **Key Structs/Enums**: `T_GlobalMotionPath`, `T_SettingsB`, `Bitmap_Type`, `T_CameraIntrinsic`, `CMediaInfo` (from example), `T_MercalliDataStream`, `T_GmpScanImageParam`, `T_MercalliRenderFrameParam`, `ScanFlags_Enum`, `BorderParam_Enum`, `CamIticLev_Enum`, `NewGMPFlags_Enum`, `FinPathFlags_Enum`.
-*   **Key Functions**: `MercalliCreateGmp`, `MercalliSetCameraIntrinsic`, `MercalliApplyProfile`, `MercalliGmpScanImage`, `MercalliGmpApplySettings`, `MercalliCreateDataStream`, `MercalliStreamRenderFrame`, `MercalliDeleteGmp`.
-*   **Control Flow**: `MustRescan()` and `MustSmoothCalc()` (inline functions in `mercalli.h`) help determine if full analysis or just path smoothing is needed when settings change.
+<div style="page-break-after: always;"></div>
+
+### 2.2 Stabilization Process
+```text
+             +------<--------+
+             v               |
+    +-------------------+    |
+    ||  Configuration  ||    |
+    +-------------------+    |
+             |               |
+             v               |
+    +-------------------+    |
+    ||    Update       ||    |
+    +-------------------+    ^
+             |               |
+ +----->-----+               |
+ |           v               |
+ |   +------------------+    |
+ |   |  Render Frame    |    |
+ |   +-------+----------+    |
+ |           v               |
+ +---<-------:----->---------+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.3 Configuration Process Overview
+```text
+   +-------------------------+  Yes +--------------+
+   | Video settings changed? |----->| Delete GMP   |
+   | Such: FieldOrder, Rate, |      +--------------+
+   | Size, Start-Endtime, ...|             |
+   +-------------------------+             |
+              |                            |
+              v                            v
+   +-------------------------+  Yes +--------------+
+   | If GMP == NULL          |----->| Create GMP   |
+   +-------------------------+      +--------------+
+              |                            v
+              +-------------<--------------+
+              v
+   +------------------------------+
+   | Set Properties               |
+   | to GMP or/and T_SettingsB    |
+   |------------------------------|
+   | Camera Intrinsic        < 1> |
+   | Apply Stabi Profile     <16> |
+   | T_SettingsB Value       < 3> |
+   | etc.                    < 4> |
+   +------------------------------+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.4 Update < 9> Process Overview
+```text
+  +-----------------------------+
+  | What is to be updated? < 5> |
+  |-----------------------------|   +----------------------+
+  |          Analysis required? +-->|| Analyze Video < 6> ||
+  |                             |   +----------------------+
+  |                             |           v
+  |                             |   +----------------------+
+  |             Apply required? +-->| Apply Settings < 7>  |
+  +-----------------------------+   +----------------------+
+              |                             v
+              v                             |
+  +-----------------------------+           |
+  | Apply instant Settings < 8> |           |
+  +-----------------------------+           |
+              |                             |
+              +--------------<--------------+
+              |
+              v
+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.5 Analysis < 6> Process Overview
+```text
+  +-------------------------+
+  | Update:                 |
+  | - Camera Intrinsic <1>  |
+  | - Stabi Profile   <16>  |
+  | - T_SettingsB           |
+  +-------------------------+
+            |
+            v
+   +-----------------+    +---------------------------+
+   | For Each Frame  +--> |   Analyze Video Frame     |
+   +-----------------+    |---------------------------|
+                          | +----------------------+  |
+                          | | Read Source Frame    |  |
+                          | +----------------------+  |
+                          |              v            |
+                          | +----------------------+  |
+                          | | Analyze Frame <13>   |  |
+                          | +----------------------+  |
+                          +---------------------------+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.6 Export <11> stabilized video Process Overview
+```text
+  /------------------/
+ / Create Encoder   /
+/------------------/
+          |
+          v
+ +-----------------+    +---------------------------------+
+ | For Each Frame  +--> |           Render Frame          |
+ +-----------------+    |---------------------------------|
+                        | +----------------------------+  |
+                        | | Read Source Frame          |  |
+                        | +----------------------------+  |
+                        |              v                  |
+                        | +----------------------------+  |
+                        | | Create Target Frame Buffer |  |
+                        | +----------------------------+  |
+                        |              v                  |
+                        | +----------------------------+  |
+                        | | Render Stabilized Frame    |  |
+                        | | <12>                       |  |
+                        | +----------------------------+  |
+                        |              v                  |
+                        | +----------------------------+  |
+                        | | Encode Target Frame        |  |
+                        | +----------------------------+  |
+                        +---------------------------------+
+          |
+          v
+    /-----------------/
+   / Close Encoder   /
+  /-----------------/
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.7 Data Stream Process Overview
+```text
+ +--------------------------------------------------------+
+ |                   Using DataStream                     |
+ |                 ( GMP not required )                   |
+ |--------------------------------------------------------|
+ |                                                        |
+ |  +--------------------------+ Yes                      |
+ |  | if DataStream == NULL?   |--->----------+           |
+ |  +--------------------------+              |           |
+ |              | No                          |           |
+ |              v                             v           |
+ |  +--------------------------+ Yes +-----------------+  |
+ |  | if Update required?  <5> |---->| Create / Update |  | 
+ |  +--------------------------+     | DataStream      |  |
+ |              | No                 +--------------+--+  |
+ |              |                             v     v     |
+ |              |                             |     v     |
+ |              +-----------<-----------------+     v     |
+ |              v                                   v     |
+ |  +--------------------------+                    v     |
+ |  | Render Frame <12>        |                    v     |
+ |  +--------------------------+                    v     |
+ |                                                  v     |
+ +--------------------------------------------------v-----+
+                                                    v
+                                                    v
+ +--------------------------------------------------+-----+
+ |               Create / Update DataStream               |
+ |                  ( GMP required )                      |
+ |--------------------------------------------------------|
+ |                                                        |
+ |  +------------------------+ Yes  +-----------------+   |
+ |  | if DataStream != NULL? |----->| Free DataStream |   |
+ |  +----------+-------------+      | <15>            |   |
+ |             | No                 +-----------------+   |
+ |             |                             v            |
+ |             |                             |            |
+ |             +------------<----------------+            |
+ |             v                                          |
+ |  +------------------------------+                      |
+ |  | Stabilization Process <9>    |                      |
+ |  +------------------------------+                      |
+ |             v                                          |
+ |  +------------------------------+                      |
+ |  | Create and Update DataStream |                      |
+ |  | <14>                         |                      |
+ |  +------------------------------+                      |
+ |                                                        |
+ +--------------------------------------------------------+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 2.8 Hyper-lapse Process <4>
+```text
+ 
+   /--------------------/
+  /  Open Source Video /
+ /--------------------/
+            |
+            v
+ +------------------------+
+ | Determine FrameStep    |
+ | by acceleration factor |
+ +------------------------+
+            |
+            v
+  /-------------------\  Yes  +------------------------+
+  | If FrameStep <= 1 |------>| No Hyper-lapse,        |
+  \-------------------/       | use std. Stabilization |
+            | No              +------------------------+
+            v
+ ..............................................................
+ :     Configuration                                          :
+ ..............................................................
+ :                                                            :
+ :  /-------------------\  Yes  +------------------------+    :
+ :  | If FrameStep <= 5 |------>| Apply Profile(45) <21> |    :
+ :  \-------------------/       +------------------------+    :
+ :            | No                        |                   :
+ :            v                           |                   :
+ :  +------------------------+            v                   :
+ :  | Apply Profile(46) <21> |            |                   :
+ :  +------------------------+            |                   :
+ :            |                           |                   :
+ :            +<--------------------------+                   :
+ :            |                                               :
+ :            v                                               :
+ :  /-------------------\  Yes  +---------------------------+ :
+ :  | If CMOS Video     |------>| Enable RS Option          | :
+ :  \-------------------/       +---------------------------+ :
+ :            | No              | see option --RS           | :
+ :            |                 | see ScanFlags_GlobFrameRS | :
+ :            |                 +---------------------------+ :
+ :            |                               |               :
+ :            +<----------------------<-------+               :
+ :            v                                               :
+ :  +----------------------------+                            :
+ :  | Set additional options     |                            :
+ :  | e.g. Camera Intrinsic <22> |                            :
+ :  +----------------------------+                            :
+ :                                                            :
+ ..............................................................
+            |
+            v
+ +--------------------------------+
+ | Analysis Source Video          |
+ | See VideoStabilization.h  <23> |
+ +--------------------------------+
+            |
+            v
+ +--------------------------------------+
+ | Export stabilized Video by           |
+ | render every FrameStep-th frame      |
+ | See VideoStabilization.h <24>        |
+ | Example FrameStep=3 (3 times faster) |
+ | Render Frames 0, 3, 6, 9 ...         |
+ +--------------------------------------+
+```
+
+<div style="page-break-after: always;"></div>
+
+### References:
+* < 1> `MercalliSetCameraIntrinsic()`
+* < 3> `MercalliApplyProfile()`
+* < 4> `EnableGlobFrameRS()`, etc.
+* < 5> `VideoStabilizationUpdateRequirement()`
+* < 6> `VideoStabilizationAnalysis()`
+* < 7> `VideoStabilizationApplySettings()`
+* < 8> `VideoStabilizationQuickApplySettings()`
+* < 9> `VideoStabilizationUpdate()`
+* <11> `VideoStabilizationExport()`
+* <12> `VideoStabilizationRenderFrame()`
+* <13> `MercalliGmpScanImage()`
+* <14> `UpdateMercalliDataStream()`
+* <15> `MercalliFreeDataStream()`
+* <16> `VideoStabilizationApplyStabiProfile()`
+
+
+- **Key Structs/Enums**: `T_GlobalMotionPath`, `T_SettingsB`, `Bitmap_Type`, `T_CameraIntrinsic`, `CMediaInfo` (from example), `T_MercalliDataStream`, `T_GmpScanImageParam`, `T_MercalliRenderFrameParam`, `ScanFlags_Enum`, `BorderParam_Enum`, `CamIticLev_Enum`, `NewGMPFlags_Enum`, `FinPathFlags_Enum`.
+- **Key Functions**: `MercalliCreateGmp`, `MercalliSetCameraIntrinsic`, `MercalliApplyProfile`, `MercalliGmpScanImage`, `MercalliGmpApplySettings`, `MercalliCreateDataStream`, `MercalliStreamRenderFrame`, `MercalliDeleteGmp`.
+- **Control Flow**: `MustRescan()` and `MustSmoothCalc()` (inline functions in `mercalli.h`) help determine if full analysis or just path smoothing is needed when settings change.
+
+<div style="page-break-after: always;"></div>
 
 ### 3. CMOS Defect Removal (Unjello) Workflow
 
 This workflow corrects artifacts like rolling shutter, jello, and wobble caused by CMOS sensors.
 
-```mermaid
-graph TD
-    UA[Open Source Video] --> UB[Get CMediaInfo: Width, Height, Rate, PAR, FieldOrder]
-    UB --> UC{T_Unjello Exists and Valid?}
-    UC --> |No| UD[Create T_Unjello Instance: MercalliCreateUnjello]
-    UC --> |Yes| UE
-    UD --> UE[Configure T_Unjello]
+### 3.1 Unjello Process Overview
+```text
+ 
+       Start
+         |
+         v
+/----------------\ Yes   /----------------------\ Yes
+| if CMOS Video  |------>|   Are strong CMOS    |--->-------+
+\--------+-------/       | distortions contain? |           |
+         | No            \----------------------/           v
+         v                      | No              ============================
+         |                      v                 | Perform Unjello <11><13> |
+         |        +---------------------------+   ============================
+         |        | Enable RS Option          |             |
+         |        |---------------------------|             |
+         |        | see option --RS           |             v
+         |        | see ScanFlags_GlobFrameRS |   /---------------------\ No
+         |        +-------------+-------------+   | if stabilize needed |-->--+
+         |                      |                 \---------------------/     |
+         |                      |                           | Yes             |
+         |                      |                           v                 |
+         |                      |                           |                 |
+        <1>                    <1>                         <3>               <2>
+         |                      |                           |                 |
+         v                      v                           v                 |
+ ====================================================================         |
+ ||                   Perform Stabilization <10><12>               ||         |
+ ====================================================================         |
+         |                                                                    |
+         v                                                                    v
+        End                                                                  End
 
-    UE --> UF{Estimate Shutter Speed Required?: MercalliEstimateUnjelloShutterSpeedRequired}
-    UF --> |Yes| UG[Estimate Shutter Speed: MercalliEstimateUnjelloShutterSpeed]
-    UF --> |No| UH
-    UG --> UH[Render/Export Phase]
-
-    subgraph Render [Render/Export Phase]
-        direction TB
-        UH1[For Each Frame to Render]
-        UH2[Prepare Target Bitmap_Type]
-        UH3[Render Unjello Frame: MercalliUnjelloRenderFrame]
-        UH4[Encode/Display Target Frame]
-        UH1 --> UH2 --> UH3 --> UH4 --> UH1
-        UH4 --> UH_End((End Render Loop))
-    end
-
-    UH_End --> UI[Cleanup: MercalliDeleteUnjello]
-
-    classDef sdkCall fill:#e6ffe6,stroke:#333,stroke-width:2px
-    class UD,UE1,UE2,UE3,UE4,UE5,UE6,UE7,UF,UG,UH3,UI sdkCall
 ```
-*   **Key Structs/Enums**: `T_Unjello`, `Bitmap_Type`, `CMediaInfo` (from example), `T_UnjelloRenderFrameParam`, `T_UnjelloFrameArguments`, `UnjelloMethodType_Enum`, `UnjelloRenderSystem_Enum`, `UnjelloBorderFillMode_Enum`.
-*   **Key Functions**: `MercalliCreateUnjello`, `MercalliSetUnjelloCustomData`, `MercalliSetUnjelloFrameCallback`, `MercalliSetUnjelloFrameNumberRange`, `MercalliSetUnjelloMethod`, `MercalliSetUnjelloEnableAutoShutterSpeed`, `MercalliSetUnjelloShutterSpeed`, `MercalliEstimateUnjelloShutterSpeed`, `MercalliUnjelloRenderFrame`, `MercalliDeleteUnjello`.
-*   **Frame Provision**: Unlike stabilization, Unjello typically gets source frames *during* the `MercalliUnjelloRenderFrame` call (or `MercalliEstimateUnjelloShutterSpeed`) via the registered `UnjelloFrameCallback`. Your callback must be prepared to decode and provide the requested `Bitmap_Type`.
+
+
+```text
+
+                            /-------------/
+                           /  Open Video /
+                          /-------------/
+                                  v
+                   +--------------+---------------+
+ +------>----------+                              +-------<--------+
+ |                 v                              v                |
+ |   +-------------------------+    +-------------------------+    |
+ |   || Instant Unjello       ||    || Reflected Unjello     ||    |
+ |   |-------------------------|    |-------------------------|    |
+ |   | - const Sensor Speed    |    | - variable Sensor Speed |    |
+ |   | - Real-Time             |    | - auto  Sensor Speed    |    |
+ |   |                         |    | - Analysis required     |    |
+ |   +-----+-------------+-----+    +----+--------------+-----+    |
+ |         |             |               |              |          |
+ |         v             v               v              v          |
+ |   +-----------+  +----------+    +-----------+  +----------+    |
+ |   | Playback  |  || Export ||    | Playback  |  || Export ||    |
+ |   +-----+-----+  +----+-----+    +----+------+  +----+-----+    |
+ |         v             v               v              v          |
+ |         |             |               |              |          |
+ +---<-----+-------------+               +--------------+---->-----+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 3.2 Instant Unjello
+```text
+
+             /------------------/
+            /    Open Video    /
+           /------------------/
+                     |
+                     +------------------------<--------------------+
+                     |                                             |
+                     v                                             |
+            +-------------------+                                  |
+            ||  Configuration  ||                                  |
+            +-------------------+                                  |
+                     |                                             |
+                     v                                             |
+   +---------------------------------------------+                 |
+   | Update <15>                                 |                 |
+   |---------------------------------------------|                 |
+   | - SetUnjelloFrameNumberRange                |                 ^
+   | - SetUnjelloEnableAutoShutterSpeed( false ) |                 |
+   | - SetUnjelloShutterSpeed( Speed )           |                 |
+   | - etc.                                      |                 |
+   +-----------------+---------------------------+                 |
+                     |                                             |
+     +------>--------+                                             |
+     |               v                                             |
+     |      +-------------------+                                  |
+     |      | Render Frame <12> |                                  |
+     |      +-------------------+                                  |
+     |               v                                             |
+     +-----<---------:----------->---------------------------------+
+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 3.3 Reflected Unjello
+```text
+             /------------------/
+            /    Open Video    /
+           /------------------/
+                     |
+                     +------------------------<-----------------------+
+                     |                                                |
+                     v                                                |
+            +-------------------+                                     |
+            ||  Configuration  ||                                     |
+            +-------------------+                                     |
+                     |                                                |
+                     v                                                |
+   +---------------------------------------------+                    |
+   | Update <15>                                 |                    |
+   |---------------------------------------------|                    |
+   | - SetUnjelloFrameNumberRange                |                    |
+   | - SetUnjelloEnableAutoShutterSpeed          |                    |
+   | - SetUnjelloShutterSpeed                    |                    |
+   | - etc.                                      |                    |
+   +-----------------+---------------------------+                    |
+                     |                                                ^
+                     v                                                |
+         +------------------------+ Yes  +------------------------+   |
+         |  If analysis required? |----->|| Perform Analysis<16> ||   |
+         +-----------+------------+      +---------+--------------+   |
+                     | No                          v                  |
+                     +-------------<---------------+                  |
+     +------>--------+                                                |
+     |               v                                                |
+     |      +-------------------+                                     |
+     |      | Render Frame <12> |                                     |
+     |      +-------------------+                                     |
+     |               v                                                |
+     +-----<---------:----------->------------------------------------+
+
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 3.4 Configuration
+```text
+   +-------------------------+  Yes +----------------+
+   | Video settings changed? |----->| Delete Unjello |
+   | Such: FieldOrder, Rate, |      +----------------+
+   | Size, Start-Endtime, ...|             |
+   +-------------------------+             |
+              |                            |
+              v                            v
+   +-------------------------+  Yes +----------------+
+   | If Unjello == NULL      |----->| Create Unjello |
+   +-------------------------+      +----------------+
+              |                            v
+              +-------------<--------------+
+              v
+   +---------------------------+
+   | Setup  <14>               |
+   |---------------------------|
+   | - SetUnjelloCustomData    |
+   | - SetUnjelloFrameCallback |
+   | - ect.                    |
+   +---------------------------+
+              :
+              v
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 3.5 Analysis Video <16>
+```text
+                            +------->------+
+           |                |              |<--------------+
+           |                ^              v               |
+           |                |  +-----------+------------+  |
+           v                |  |UnjelloFrameCallback<13>|  |
++-----------------------+   |  +-----------+------------+  |
+| Estimate Shutter Speed -->/              |               |
+| <17>                  <---\              v               ^
++----------+------------+   |  +------------------------+  |
+           |                |  |UnjelloPushFrameCallback|  |
+           |                |  +-----------+------------+  |
+           |                ^              |               |
+           |                |              v               |
+           |                +--------<-----:------>--------+
+           v
+
+```
+
+<div style="page-break-after: always;"></div>
+
+### 3.6 Export Process <11>
+```text
+   /------------------/
+  /  Create Encoder  /
+ /------------------/
+          |             
+          |
+          v
+ +----------------+
+ | For Each Frame |
+ +--------+-------+
+          |
+          v
+  +----------------------------+
+  |     Render Frame <12>      |
+  |----------------------------|    +------->------+
+  |  +----------------------+  |    |              |<--------------+
+  |  |  Create Frame Buffer |  |    ^              v               |
+  |  +----------------------+  |    |  +-----------+------------+  |
+  |              v             |    |  |UnjelloFrameCallback<13>|  |
+  |  +----------------------+  |    |  +-----------+------------+  |
+  |  | Render Unjello into  +------>/              |               |
+  |  | Frame-Buffer         <-------\              v               ^
+  |  +----------------------+  |    |  +------------------------+  |
+  |              v             |    |  |UnjelloPushFrameCallback|  |
+  |  +----------------------+  |    |  +-----------+------------+  |
+  |  |  Encode Frame Buffer |  |    ^              |               |
+  |  +----------------------+  |    |              v               |
+  |                            |    +--------<-----:------>--------+
+  +----------------------------+  
+          |
+          |
+          |             
+          v             
+   /-----------------/
+  / Close Encoder   /
+ /-----------------/
+
+```
+
+
+<div style="page-break-after: always;"></div>
+
+### References:
+* <11> see `VideoUnjelloExport()`
+* <12> see `VideoUnjelloRenderFrame()`
+* <13> see `UnjelloFrame()`
+* <14> see `VideoUnjelloSetup()`
+* <15> see `VideoUnjelloUpdate()`
+* <16> see `VideoUnjelloAnalysis()`
+* <17> see `MercalliEstimateUnjelloShutterSpeed()`
+
+- **Key Structs/Enums**: `T_Unjello`, `Bitmap_Type`, `CMediaInfo` (from example), `T_UnjelloRenderFrameParam`, `T_UnjelloFrameArguments`, `UnjelloMethodType_Enum`, `UnjelloRenderSystem_Enum`, `UnjelloBorderFillMode_Enum`.
+- **Key Functions**: `MercalliCreateUnjello`, `MercalliSetUnjelloCustomData`, `MercalliSetUnjelloFrameCallback`, `MercalliSetUnjelloFrameNumberRange`, `MercalliSetUnjelloMethod`, `MercalliSetUnjelloEnableAutoShutterSpeed`, `MercalliSetUnjelloShutterSpeed`, `MercalliEstimateUnjelloShutterSpeed`, `MercalliUnjelloRenderFrame`, `MercalliDeleteUnjello`.
+- **Frame Provision**: Unlike stabilization, Unjello typically gets source frames *during* the `MercalliUnjelloRenderFrame` call (or `MercalliEstimateUnjelloShutterSpeed`) via the registered `UnjelloFrameCallback`. Your callback must be prepared to decode and provide the requested `Bitmap_Type`.
 
 
 ---

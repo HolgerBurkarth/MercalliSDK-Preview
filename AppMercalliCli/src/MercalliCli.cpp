@@ -230,7 +230,7 @@ HRESULT PrintCameraIntrinsic()
   UNICHAR Name[80];
   T_CameraIntrinsic CI;
 
-  printf("Available Camera Intrinsic\n");
+  printf("Available Camera Intrinsics\n");
   for(SINT32 i=0; i < Count; ++i)
   {
     hr = MercalliGetStaticCameraIntrinsicName(i, Name, sizeof(Name));

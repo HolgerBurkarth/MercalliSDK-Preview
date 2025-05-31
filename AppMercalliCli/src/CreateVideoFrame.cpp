@@ -131,11 +131,8 @@ HRESULT CreateVideoFrame(
 #ifdef HAVE_OPENCV_UMAT
   if(frameType == FrameType_CL)
   {
-    if(frameType == FrameType_CL)
-    {
-      Frame->mUMat.create(height, width, GetCvType((format_type)format));
-      Frame->mInfo.pUMat = &Frame->mUMat;
-    }
+    Frame->mUMat.create(height, width, GetCvType((format_type)format));
+    Frame->mInfo.pUMat = &Frame->mUMat;
   }
   else
 #endif
