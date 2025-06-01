@@ -7,6 +7,7 @@
  $AUT Holger Burkarth
  $DAT >>mercalli.h<< 27 Mai 2025  09:14:53 - (c) proDAD
 *******************************************************************/
+#pragma once
 #pragma endregion
 
 #pragma region +++ Mercalli SDK +++
@@ -17,8 +18,7 @@
  * proDAD GmbH
  * Gauertstr. 2
  * D-78194 Immendingen, Germany
- * Phone: +49 (0)7462 9459 0 | Fax: +49 (0)7462 9459 79
- * For SDK technical support, please contact: sdk@prodad.com
+ * For SDK technical support, please contact: Burkarth@prodad.com
  *
  * Features:
  * - Removal of CMOS distortions (Unjello)
@@ -35,6 +35,8 @@
 #define MERCALLI_INTERFACE_VERSION 0x0006000b
 
 /*
+ * 2025-06-01: 6.11
+ *    - Update Documentation and Samples
  * 2022-01-09: 6.11
  *    - Update for Mercalli 6.0
  * 2017-06-07: 4.10
@@ -75,6 +77,8 @@
 #include <proDADGuid.h>
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 #if defined(MERCALLISDK_BUILD_STATICLIB)
   #define MERCALLISDK_API(type, name) pMETHODE_LINKLIB_API(type, name)
@@ -818,8 +822,8 @@ struct T_MercalliStreamSettingsB
   T_SettingsB CurrentSettings;
   SINT32      CurrentProfileID;
 
-  /* Neue Settings, die später angewendet werden sollen.
-   * Diese Struct dient nur zur Vormerkung der Settings.
+  /* New settings to be applied later.
+   * This struct is only used to reserve the settings.
    */
   T_SettingsB NewSettings;
   SINT32      NewProfileID;
@@ -839,7 +843,7 @@ struct T_MercalliStreamCameraIntrinsic
 struct T_MercalliDataStream
 {
   GUID   Magic;      // Safety-Identifier: MercalliMagix_DataStream
-  UINT64 StreamSize; // Size of the whole Stream in Bytes
+  UINT64 StreamSize; // Size of the entire stream in bytes
 
   UINT32 ItemCount;  // Count of Items[]
 
@@ -989,7 +993,7 @@ typedef STDCALLBACKDECL(UnjelloProgressCallback)(
 __STATIC_INLINE
 bool MustRescan(const T_SettingsB* _old, const T_SettingsB* _new)
 {
-  assert(_old != NULL && _new != NULL);
+  assert(_old != nullptr && _new != nullptr);
   SINT32 ScanFlagsMask = ~0;
 
   /* A change of Rolling-Shutter Options or TryVariation
@@ -1009,7 +1013,7 @@ bool MustRescan(const T_SettingsB* _old, const T_SettingsB* _new)
 __STATIC_INLINE
 bool MustSmoothCalc(const T_SettingsB* _old, const T_SettingsB* _new)
 {
-  assert(_old != NULL && _new != NULL);
+  assert(_old != nullptr && _new != nullptr);
   return
       _old->TransFac     != _new->TransFac
    || _old->ZRotationFac != _new->ZRotationFac
@@ -1047,7 +1051,7 @@ __STATIC_INLINE
 bool IsCameraIntrinsicDisabledOrInvalid(const T_CameraIntrinsic* pCam)
 {
   return
-     pCam == NULL
+     pCam == nullptr
   || pCam->Width  <= 0
   || pCam->Height <= 0
   || pCam->Fx < 1
@@ -1059,7 +1063,7 @@ bool IsCameraIntrinsicDisabledOrInvalid(const T_CameraIntrinsic* pCam)
 __STATIC_INLINE
 bool IsEqual(const T_CameraIntrinsic* a, const T_CameraIntrinsic* b)
 {
-  assert(a != NULL && b != NULL);
+  assert(a != nullptr && b != nullptr);
   return
      a->Width  == b->Width
   && a->Height == b->Height
@@ -1103,7 +1107,7 @@ __STATIC_INLINE bool SettingsEquals(
   const T_SettingsB* b,
   UINT32 scanFlagsMask = ~0)
 {
-  assert(a != NULL && b != NULL);
+  assert(a != nullptr && b != nullptr);
   return
        a->BorderParam  == b->BorderParam
     && a->CompKnd      == b->CompKnd
@@ -1124,7 +1128,7 @@ __STATIC_INLINE
 bool IsUnjelloTSettingsDisabledOrInvalid(const T_UnjelloTSettings* pS)
 {
   return
-     pS == NULL
+     pS == nullptr
   || pS->FrameWindowSize < 3
   || pS->SuperRowsPerFrame < 3
   || pS->Iterations < 1
@@ -1134,7 +1138,7 @@ bool IsUnjelloTSettingsDisabledOrInvalid(const T_UnjelloTSettings* pS)
 __STATIC_INLINE
 bool IsEqual(const T_UnjelloTSettings* a, const T_UnjelloTSettings* b)
 {
-  assert(a != NULL && b != NULL);
+  assert(a != nullptr && b != nullptr);
   return
      a->FrameWindowSize   == b->FrameWindowSize
   && a->SuperRowsPerFrame == b->SuperRowsPerFrame
@@ -1150,14 +1154,14 @@ bool IsEqual(const T_UnjelloTSettings* a, const T_UnjelloTSettings* b)
 
 #pragma region Functions
 
-#pragma region Internal Functions
+#pragma region proDAD internals
 void MercalliMedullaBind();
 void MercalliMedullaBindUnjello();
 void MercalliMedullaBindStabilizer();
 void Cleanup_Mercalli();
 
 #ifdef OS_WINDOWS
-BOOL Init_Mercalli(HINSTANCE hInst = NULL);
+BOOL Init_Mercalli(HINSTANCE hInst = nullptr);
 #else
 BOOL Init_Mercalli();
 #endif
@@ -1180,8 +1184,7 @@ __STATIC_INLINE bool MercalliUsable()
 }
 #pragma endregion
 
-#pragma region Library Set Functions
-
+#pragma region Library Set/Get Functions
 /* Sets a value
  * @param type       -- (LibValueType_Enum)
  * @param pArg       -- Input argument, depending on the type
@@ -1196,150 +1199,6 @@ MERCALLISDK_API(HRESULT, MercalliSetValue)(
   /* in  */       SINT32     argSize,
   /* in  */ const void*      pOption,
   /* in  */       SINT32     optionSize);
-
-/*
- * @param pBuffer --
- * @param length  -- byte size
- * @return HResult
- */
-__STATIC_INLINE HRESULT MercalliAddLicense(
-  /* in  */ const UINT8* pBuffer,
-  /* in  */       SINT32 length)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_AddBinLicense,
-    pBuffer, length, // Arguments
-    NULL, 0          // Result
-  );
-}
-
-__STATIC_INLINE HRESULT MercalliAddLicense(
-  /* in  */ const char* pText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_AddTextLicense,
-    pText, 0, // Arguments
-    NULL, 0   // Result
-  );
-}
-
-/* Open a Session. Don't forget to close it.
- * @param pConfigText -- from proDAD
- */
-__STATIC_INLINE HRESULT MercalliOpenProductActivationSession(
-  /* in  */ const char* pConfigText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_OpenProductActivationSession,
-    pConfigText, 0, // Arguments
-    NULL, 0         // Result
-  );
-}
-
-/* Close a Session
- */
-__STATIC_INLINE HRESULT MercalliCloseProductActivationSession()
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_CloseProductActivationSession,
-    NULL, 0, // Arguments
-    NULL, 0  // Result
-  );
-}
-
-/* Set Caller
- * @param pText -- from earlier generated via
- */
-__STATIC_INLINE HRESULT MercalliSetProductActivationCaller(
-  /* in  */ const char* pText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_SetProductActivationCaller,
-    pText, 0, // Arguments
-    NULL, 0   // Result
-  );
-}
-
-/* Set Bag
- * @param pText -- from earlier...
- */
-__STATIC_INLINE HRESULT MercalliSetProductActivationBag(
-  /* in  */ const char* pText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_SetProductActivationBag,
-    pText, 0, // Arguments
-    NULL, 0   // Result
-  );
-}
-
-/*
- *
- */
-__STATIC_INLINE HRESULT MercalliGenerateProductActivationCaller()
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_GenerateProductActivationCaller,
-    NULL, 0, // Arguments
-    NULL, 0  // Result
-  );
-}
-
-/*
- * @notice requires OpenProductActivationSession(), SetProductActivationCaller(), SetProductActivationBag()
- */
-__STATIC_INLINE HRESULT MercalliActivateProduct()
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_ActivateProduct,
-    NULL, 0, // Arguments
-    NULL, 0  // Result
-  );
-}
-
-/*
- * @param pText -- Activation code
- */
-__STATIC_INLINE HRESULT MercalliBeginActivateProduct(
-  /* in  */ const char* pText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_BeginActivateProduct,
-    pText, 0, // Arguments
-    NULL, 0   // Result
-  );
-}
-
-/*
- * @param pText -- Web response
- * @notice requires BeginActivateProduct()
- */
-__STATIC_INLINE HRESULT MercalliFinishActivateProduct(
-  /* in  */ const char* pText)
-{
-  return MercalliSetValue
-  (
-    LIBVTyp_FinishActivateProduct,
-    pText, 0, // Arguments
-    NULL, 0   // Result
-  );
-}
-
-
-
-
-#pragma endregion
-
-#pragma region Library Get Functions
 
 /* Retrieves a value
  * @param type       -- (LibValueType_Enum)
@@ -1356,8 +1215,149 @@ MERCALLISDK_API(HRESULT, MercalliGetValue)(
   /* out */       void*  pResult,
   /* in  */       SINT32 resultSize);
 
+#pragma endregion
+
+#pragma region License/ProductActivation Functions
+
+/* Add a License to remove the "Unlicensed" watermark.
+ * @param pBuffer --
+ * @param length  -- byte size
+ * @return HResult
+ */
+__STATIC_INLINE HRESULT MercalliAddLicense(
+  /* in  */ const UINT8* pBuffer,
+  /* in  */       SINT32 length)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_AddBinLicense,
+    pBuffer, length, // Arguments
+    nullptr, 0       // Result
+  );
+}
+
+__STATIC_INLINE HRESULT MercalliAddLicense(
+  /* in  */ const char* pText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_AddTextLicense,
+    pText, 0,   // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/* Open a Session. Don't forget to close it.
+ * @param pConfigText -- from proDAD
+ */
+__STATIC_INLINE HRESULT MercalliOpenProductActivationSession(
+  /* in  */ const char* pConfigText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_OpenProductActivationSession,
+    pConfigText, 0, // Arguments
+    nullptr, 0      // Result
+  );
+}
+
+/* Close a Session
+ */
+__STATIC_INLINE HRESULT MercalliCloseProductActivationSession()
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_CloseProductActivationSession,
+    nullptr, 0, // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/* Set Caller
+ * @param pText -- from earlier generated via
+ */
+__STATIC_INLINE HRESULT MercalliSetProductActivationCaller(
+  /* in  */ const char* pText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_SetProductActivationCaller,
+    pText, 0,   // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/* Set Bag
+ * @param pText -- from earlier...
+ */
+__STATIC_INLINE HRESULT MercalliSetProductActivationBag(
+  /* in  */ const char* pText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_SetProductActivationBag,
+    pText, 0,   // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/*
+ *
+ */
+__STATIC_INLINE HRESULT MercalliGenerateProductActivationCaller()
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_GenerateProductActivationCaller,
+    nullptr, 0, // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/*
+ * @notice requires OpenProductActivationSession(), SetProductActivationCaller(), SetProductActivationBag()
+ */
+__STATIC_INLINE HRESULT MercalliActivateProduct()
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_ActivateProduct,
+    nullptr, 0, // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/*
+ * @param pText -- Activation code
+ */
+__STATIC_INLINE HRESULT MercalliBeginActivateProduct(
+  /* in  */ const char* pText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_BeginActivateProduct,
+    pText, 0,   // Arguments
+    nullptr, 0  // Result
+  );
+}
+
+/*
+ * @param pText -- Web response
+ * @notice requires BeginActivateProduct()
+ */
+__STATIC_INLINE HRESULT MercalliFinishActivateProduct(
+  /* in  */ const char* pText)
+{
+  return MercalliSetValue
+  (
+    LIBVTyp_FinishActivateProduct,
+    pText, 0,   // Arguments
+    nullptr, 0  // Result
+  );
+}
+
 /* Get Caller String
- * @param pResult    -- Text buffer or NULL for getting the required size (via HRESULT)
+ * @param pResult    -- Text buffer or nullptr for getting the required size (via HRESULT)
  * @param resultSize -- Byte size of pResult
  * @notice A opened session and a generated Caller is needed.
  */
@@ -1368,13 +1368,13 @@ __STATIC_INLINE HRESULT MercalliGetProductActivationCaller(
   return MercalliGetValue
   (
     LIBVTyp_GetProductActivationCaller,
-    NULL, 0,             // Arguments
+    nullptr, 0,          // Arguments
     pResult, resultSize  // Result
   );
 }
 
 /* Get Bag String
- * @param pResult    -- Text buffer or NULL for getting the required size (via HRESULT)
+ * @param pResult    -- Text buffer or nullptr for getting the required size (via HRESULT)
  * @param resultSize -- Byte size of pResult
  */
 __STATIC_INLINE HRESULT MercalliGetProductActivationBag(
@@ -1384,13 +1384,13 @@ __STATIC_INLINE HRESULT MercalliGetProductActivationBag(
   return MercalliGetValue
   (
     LIBVTyp_GetProductActivationBag,
-    NULL, 0,             // Arguments
+    nullptr, 0,          // Arguments
     pResult, resultSize  // Result
   );
 }
 
 /* Get Bag String
- * @param pResult    -- Text buffer or NULL for getting the required size (via HRESULT)
+ * @param pResult    -- Text buffer or nullptr for getting the required size (via HRESULT)
  * @param resultSize -- Byte size of pResult
  */
 __STATIC_INLINE HRESULT MercalliGetProductActivationURL(
@@ -1400,7 +1400,7 @@ __STATIC_INLINE HRESULT MercalliGetProductActivationURL(
   return MercalliGetValue
   (
     LIBVTyp_GetProductActivationURL,
-    NULL, 0,             // Arguments
+    nullptr, 0,          // Arguments
     pResult, resultSize  // Result
   );
 }
@@ -1416,8 +1416,8 @@ __STATIC_INLINE HRESULT MercalliGetActivateProductStatus()
   return MercalliGetValue
   (
     LIBVTyp_GetActivateProductStatus,
-    NULL, 0, // Arguments
-    NULL, 0  // Result
+    nullptr, 0, // Arguments
+    nullptr, 0  // Result
   );
 }
 
@@ -1425,6 +1425,7 @@ __STATIC_INLINE HRESULT MercalliGetActivateProductStatus()
 
 #pragma region Gmp Functions
 /* Deletes a GMP instance created by @ref MercalliCreateGmp().
+ * @param pGMP -- GMP instance to delete
  */
 MERCALLISDK_API(HRESULT, MercalliDeleteGmp)(
   /* in  */ T_GlobalMotionPath* pGMP);
@@ -1434,7 +1435,7 @@ MERCALLISDK_API(HRESULT, MercalliDeleteGmp)(
  * @param flags       -- Configuration flags:
  *    - NewGlobalMotionPathFlags_Fields: Enables interlaced video support
  * @return The instance must be freed using @ref MercalliDeleteGmp().
- *         Returns NULL in case of failure.
+ *         Returns nullptr in case of failure.
  */
 MERCALLISDK_API(HRESULT, MercalliCreateGmp)(
   /* out */ T_GlobalMotionPath** pGMP,
@@ -1444,7 +1445,7 @@ MERCALLISDK_API(HRESULT, MercalliCreateGmp)(
 
 /* Apply Settings.
  * @param flags             -- (FinishPathFlags_Enum)
- * @param pAdjustedSettings -- Ignored by NULL.
+ * @param pAdjustedSettings -- Ignored by nullptr.
  *                             Will used if FinPathFlags_SupportVariation is set and the Settings are able.
  * @return HResult
  */
@@ -1455,6 +1456,11 @@ MERCALLISDK_API(HRESULT, MercalliGmpApplySettings)(
   /* out */       T_SettingsB*  pAdjustedSettings
  );
 
+/* Aborts the analysis of a GMP instance.
+ * @note This function can be called at any time, even while analysis is running.
+ * @param pGMP -- GMP instance to abort
+ * @return HRESULT
+ */
 MERCALLISDK_API(HRESULT, MercalliGmpAbortAnalysis)(
   /* in  */       T_GlobalMotionPath* pGMP);
 
@@ -1559,7 +1565,7 @@ __STATIC_INLINE HRESULT MercalliGetCurrentAnalysisFrameCount(
   (
     pGMP,
     GMPVTyp_CurrentAnalysisFrameCount,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pCount, sizeof(*pCount) // Result
   );
 }
@@ -1577,7 +1583,7 @@ __STATIC_INLINE HRESULT MercalliCurrentAnalysisProgress(
   (
     pGMP,
     GMPVTyp_CurrentAnalysisProgress,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(pValue)  // Result
   );
 }
@@ -1645,6 +1651,7 @@ __STATIC_INLINE HRESULT MercalliGetCameraIntrinsic(
 /*!
  * @param pCount [0,1,2, ...]
  * @return HResult
+ * @note No longer available in Mercalli V6.
  */
 __STATIC_INLINE HRESULT MercalliGetFadeInFrameCount(
   /* in  */ const T_GlobalMotionPath* pGMP,
@@ -1654,7 +1661,7 @@ __STATIC_INLINE HRESULT MercalliGetFadeInFrameCount(
   (
     pGMP,
     GMPVTyp_FadeInFrameCount,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pCount, sizeof(*pCount) // Result
   );
 }
@@ -1662,6 +1669,7 @@ __STATIC_INLINE HRESULT MercalliGetFadeInFrameCount(
 /*!
  * @param pCount [0,1,2, ...]
  * @return HResult
+ * @note No longer available in Mercalli V6.
  */
 __STATIC_INLINE HRESULT MercalliGetFadeOutFrameCount(
   /* in  */ const T_GlobalMotionPath* pGMP,
@@ -1671,7 +1679,7 @@ __STATIC_INLINE HRESULT MercalliGetFadeOutFrameCount(
   (
     pGMP,
     GMPVTyp_FadeOutFrameCount,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pCount, sizeof(*pCount) // Result
   );
 }
@@ -1705,13 +1713,13 @@ MERCALLISDK_API(HRESULT, MercalliSetGmpValue)(
 /* Set Camera Intrinsic.
  * @param level -- (CameraIntrinsicLevel_Enum)
  *                 CamIticLev_Source, CamIticLev_Target
- * @param pCam -- Reset the Cam via NULL
+ * @param pCam -- Reset the Cam via nullptr
  * @return HResult
  */
 __STATIC_INLINE HRESULT MercalliSetCameraIntrinsic(
   /* in  */       T_GlobalMotionPath* pGMP,
   /* in  */       SINT32              level,
-  /* in  */ const T_CameraIntrinsic*  pCam = NULL)
+  /* in  */ const T_CameraIntrinsic*  pCam = nullptr)
 {
   return MercalliSetGmpValue
   (
@@ -1724,7 +1732,8 @@ __STATIC_INLINE HRESULT MercalliSetCameraIntrinsic(
 
 /*
  * @return HResult
- */
+  * @note No longer available in Mercalli V6.
+*/
 __STATIC_INLINE HRESULT MercalliSetFadeInFrameCount(
   /* in  */       T_GlobalMotionPath* pGMP,
   /* in  */       SINT64              count)
@@ -1734,12 +1743,13 @@ __STATIC_INLINE HRESULT MercalliSetFadeInFrameCount(
     pGMP,
     GMPVTyp_FadeInFrameCount,
     &count, sizeof(count),    // Arguments
-    NULL, 0                   // Option
+    nullptr, 0                // Option
   );
 }
 
 /*
  * @return HResult
+ * @note No longer available in Mercalli V6.
  */
 __STATIC_INLINE HRESULT MercalliSetFadeOutFrameCount(
   /* in  */       T_GlobalMotionPath* pGMP,
@@ -1750,7 +1760,7 @@ __STATIC_INLINE HRESULT MercalliSetFadeOutFrameCount(
     pGMP,
     GMPVTyp_FadeOutFrameCount,
     &count, sizeof(count),    // Arguments
-    NULL, 0                   // Option
+    nullptr, 0                // Option
   );
 }
 
@@ -1761,11 +1771,13 @@ __STATIC_INLINE HRESULT MercalliSetFadeOutFrameCount(
 #pragma region Stabi-Profile Functions
 
 /* Retrieves the number of static stabilization profiles
+ * @return Number of profiles
  */
 MERCALLISDK_API(SINT32, MercalliGetProfileNums)();
 
 /* Applies profile data to pSettings.
  * Refer to MercalliSAL for comparing profile differences.
+ * @return TRUE if successful, FALSE if not found or error
  *
  * @param index
  *   - 42: Intelligent-Universal (Best, includes FinPathFlags_SupportVariation)
@@ -1775,12 +1787,16 @@ MERCALLISDK_API(BOOL, MercalliApplyProfile)(
   /* out */ T_SettingsB* pSettings);
 
 /* Compare Settings with Index.
+ * @param index -- Index of the profile
+ * @param pSettings -- Settings to compare
+ * @return TRUE if the profile matches the settings, FALSE otherwise.
  */
 MERCALLISDK_API(BOOL, MercalliIsSameProfile)(
   /* in  */       SINT32       index,
   /* in  */ const T_SettingsB* pSettings);
 
 /* Find Index of Profile.
+ * @param pSettings -- Settings to compare
  * @return (-1) if not found
  */
 MERCALLISDK_API(SINT32, MercalliFindProfile)(
@@ -1788,7 +1804,7 @@ MERCALLISDK_API(SINT32, MercalliFindProfile)(
 
 #pragma endregion
 
-#pragma region Static Camera Intrinsic Functions
+#pragma region Camera Intrinsic Functions
 /*
  * @warn Do not use the index as a permanent identifier.
  *
@@ -1811,7 +1827,7 @@ MERCALLISDK_API(SINT32, MercalliFindStaticCameraIntrinsicGuid)(
 /* Get Intrinsic
  * @param index -- Index of Range [0 ... GetStaticCameraIntrinsicNums-1]
  *                 e.g.: from FindStaticCameraIntrinsicEnum or FindStaticCameraIntrinsicGuid
- * @return 0 if succ.
+ * @return HResult
  */
 MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsic)(
   /* in  */ SINT32             index,
@@ -1820,7 +1836,7 @@ MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsic)(
 /* Get Intrinsic ID
  * @param index -- Index of Range [0 ... GetStaticCameraIntrinsicNums-1]
  *                 e.g.: from FindStaticCameraIntrinsicEnum or FindStaticCameraIntrinsicGuid
- * @return 0 if succ.
+ * @return HResult
  */
 MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsicID)(
   /* in  */ SINT32 index,
@@ -1830,7 +1846,7 @@ MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsicID)(
  * @param index -- Index of Range [0 ... GetStaticCameraIntrinsicNums-1]
  *                 e.g.: from FindStaticCameraIntrinsicEnum or FindStaticCameraIntrinsicGuid
  * @param bufSize -- Byte-Size of pBuf
- * @return 0 if succ.
+ * @return HResult
  */
 MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsicName)(
   /* in  */ SINT32   index,
@@ -1843,7 +1859,7 @@ MERCALLISDK_API(HRESULT, MercalliGetStaticCameraIntrinsicName)(
 /* Retrieves the T_MercalliStreamTag::Size value of the tags.
  * @param pGMP        -- GMP instance
  * @param pSourceTags -- Key-value pairs must be valid
- * @param pTargetTags -- Key, Size, and Data will be set (Data is usually NULL)
+ * @param pTargetTags -- Key, Size, and Data will be set (Data is usually nullptr)
  * @param count       -- Number of elements in pSourceTags[] and pTargetTags[]
  * @return HRESULT
  *
@@ -1897,26 +1913,26 @@ MERCALLISDK_API(HRESULT, MercalliBuildDataStream)(
 
 #pragma region Create/Free MercalliDataStream
 /* Allocate full initialized DataStream.
- * @param pGMP  --
- * @param pTags --
+ * @param pGMP  -- 
+ * @param pTags -- Tags to be stored in the DataStream.
  * @param count -- Number of pTags[]
- * @return NULL by Error. Free the DataStream by ref MercalliFreeDataStream()
+ * @return nullptr by Error. Free the DataStream by ref MercalliFreeDataStream()
  */
 __STATIC_INLINE
 T_MercalliDataStream* MercalliCreateDataStream(
   /* in  */ const T_GlobalMotionPath*  pGMP,
   /* in  */ const T_MercalliStreamTag* pTags,
   /* in  */       SINT32               count,
-  /* out */       HRESULT*             pHR = NULL)
+  /* out */       HRESULT*             pHR = nullptr)
 {
-  assert(pGMP != NULL && pTags != NULL && count > 0);
+  assert(pGMP != nullptr && pTags != nullptr && count > 0);
   HRESULT hr = 0;
-  T_MercalliDataStream* Stream = NULL;
-  T_MercalliStreamTag* TargetTags = NULL;
+  T_MercalliDataStream* Stream = nullptr;
+  T_MercalliStreamTag* TargetTags = nullptr;
   UINT64 Size = 0;
 
   TargetTags = new T_MercalliStreamTag[count];
-  if(TargetTags == NULL)
+  if(TargetTags == nullptr)
     hr = E_OUTOFMEMORY;
 
   if(SUCCEEDED(hr))
@@ -1926,7 +1942,7 @@ T_MercalliDataStream* MercalliCreateDataStream(
   if(SUCCEEDED(hr))
   {
     Stream = (T_MercalliDataStream*)malloc( (size_t)Size );
-    if(Stream == NULL)
+    if(Stream == nullptr)
       hr = E_OUTOFMEMORY;
   }
   if(SUCCEEDED(hr))
@@ -1935,14 +1951,14 @@ T_MercalliDataStream* MercalliCreateDataStream(
 
   if(FAILED(hr))
   {
-    if(Stream != NULL)
+    if(Stream != nullptr)
     {
       free(Stream);
-      Stream = NULL;
+      Stream = nullptr;
     }
   }
 
-  if(pHR != NULL)
+  if(pHR != nullptr)
     *pHR = hr;
 
   delete [] TargetTags;
@@ -1956,12 +1972,78 @@ __STATIC_INLINE
 void MercalliFreeDataStream(
   /* in  */ T_MercalliDataStream* p)
 {
-  if(p != NULL)
+  if(p != nullptr)
   {
     assert(p->Magic == MercalliMagix_DataStream);
     free(p);
   }
 }
+#pragma endregion
+
+#pragma region Read/Write MercalliDataStream
+/*
+* Write a DataStream to a file.
+* @param pFile   -- File to write to
+* @param pStream -- DataStream to write
+* @return HRESULT
+*/
+__STATIC_INLINE 
+HRESULT MercalliWriteDataStream(
+                  FILE*                 pFile,
+  /* in  */ const T_MercalliDataStream* pStream)
+{
+  if(pFile == nullptr || pStream == nullptr)
+    return E_POINTER;
+  assert(pStream->Magic == MercalliMagix_DataStream);
+  if(pStream->Magic != MercalliMagix_DataStream)
+    return E_FAIL;
+  size_t Written = fwrite(pStream, 1, pStream->StreamSize, pFile);
+  if(Written != pStream->StreamSize)
+    return E_FAIL;
+  return S_OK;
+}
+
+/*
+* Read a DataStream from a file.
+* @param pFile   -- File to read from
+* @param ppStream -- Pointer to a T_MercalliDataStream pointer.
+*                   The pointer will be allocated and must be freed by @ref MercalliFreeDataStream().
+* @return HRESULT
+*/
+__STATIC_INLINE
+HRESULT MercalliReadDataStream(
+             FILE*                  pFile,
+  /* out */  T_MercalliDataStream** ppStream)
+{
+  if(pFile == nullptr || ppStream == nullptr || *ppStream != nullptr)
+    return E_POINTER;
+  T_MercalliDataStream Header;
+  size_t Read = fread(&Header, 1, sizeof(Header), pFile);
+  if(Read != sizeof(Header))
+  {
+    return E_FAIL;
+  }
+  if(Header.Magic != MercalliMagix_DataStream || Header.ItemCount < 0 || Header.StreamSize < sizeof(T_MercalliDataStream))
+  {
+    return E_FAIL;
+  }
+
+  T_MercalliDataStream* pStream = (T_MercalliDataStream*)malloc(Header.StreamSize);
+  if(pStream == nullptr)
+    return E_OUTOFMEMORY;
+
+  memcpy(pStream, &Header, sizeof(Header));
+  Read = fread((UINT8*)pStream + sizeof(Header), 1, pStream->StreamSize - sizeof(Header), pFile);
+  if(Read != (pStream->StreamSize - sizeof(Header)))
+  {
+    free(pStream);
+    return E_FAIL;
+  }
+
+  *ppStream = pStream;
+  return S_OK;
+}
+
 #pragma endregion
 
 #pragma region Get Item of MercalliDataStream
@@ -1980,7 +2062,7 @@ HRESULT MercalliGetDataStreamItem(
   /* out */       UINT64*               pSize)
 {
   HRESULT hr = 0;
-  if(pStream == NULL)
+  if(pStream == nullptr)
     return E_POINTER;
   if(pStream->Magic != MercalliMagix_DataStream)
     return E_FAIL;
@@ -1996,10 +2078,10 @@ HRESULT MercalliGetDataStreamItem(
     hr = E_FAIL;
   else
   {
-    if(pPtr != NULL)
+    if(pPtr != nullptr)
       *pPtr = (void*)((UINT_PTR)pStream + pStream->Items[Index].Offset);
 
-    if(pSize != NULL)
+    if(pSize != nullptr)
       *pSize = pStream->Items[Index].Size;
   }
 
@@ -2018,10 +2100,10 @@ HRESULT MercalliGetDataStream(
   /* in  */       T_MercalliDataStream* pStream,
   /* in  */ const GUID&                 key,
   /* out */       T**                   pPtr,
-  /* out */       UINT64*               pSize = NULL)
+  /* out */       UINT64*               pSize = nullptr)
 {
   HRESULT hr = 0;
-  if(pStream == NULL || pPtr == NULL)
+  if(pStream == nullptr || pPtr == nullptr)
     return E_POINTER;
 
   hr = MercalliGetDataStreamItem(pStream, key, (void**)pPtr, pSize);
@@ -2030,9 +2112,6 @@ HRESULT MercalliGetDataStream(
 
 /* get T_MercalliStreamMediaInfo
  * @param pStream --
- * @param key     --
- * @param pPtr    --
- * @param pSize   --
  * @return HResult
  */
 __STATIC_INLINE
@@ -2056,9 +2135,6 @@ HRESULT MercalliGetStreamMediaInfo(
 
 /* get T_MercalliStreamCameraIntrinsic
  * @param pStream --
- * @param key     --
- * @param pPtr    --
- * @param pSize   --
  * @return HResult
  */
 __STATIC_INLINE
@@ -2082,9 +2158,6 @@ HRESULT MercalliGetStreamCameraIntrinsic(
 
 /* get T_MercalliStreamFrameMatrixKey
  * @param pStream --
- * @param key     --
- * @param pPtr    --
- * @param pSize   --
  * @return HResult
  */
 __STATIC_INLINE
@@ -2109,9 +2182,6 @@ HRESULT MercalliGetStreamSmoothFrameMatrix(
 
 /* get T_MercalliStreamFrameMatrixKey
  * @param pStream --
- * @param key     --
- * @param pPtr    --
- * @param pSize   --
  * @return HResult
  */
 __STATIC_INLINE
@@ -2137,8 +2207,6 @@ HRESULT MercalliGetStreamRealFrameMatrix(
 /* get T_MercalliStreamSettingsB
  * @param pStream --
  * @param key     --
- * @param pPtr    --
- * @param pSize   --
  * @return HResult
  */
 __STATIC_INLINE
@@ -2170,6 +2238,7 @@ HRESULT MercalliGetStreamSettingsB(
 #pragma region Unjello Functions
 
 /* Delete a via @ref MercalliCreateUnjello() created Unjello-Instance.
+ * @param pUJ -- Unjello instance to delete
  */
 MERCALLISDK_API(HRESULT, MercalliDeleteUnjello)(
   /* in  */ T_Unjello* pUJ);
@@ -2179,7 +2248,7 @@ MERCALLISDK_API(HRESULT, MercalliDeleteUnjello)(
  * @param par        -- PixelAspectRatio: e.g.: 1.06=PAL
  * @param rate       -- Frame rate, 25=PAL, 29.97=NTSC, etc.
  * @return The Instance must free via @ref MercalliDeleteUnjello()
- *         NULL in case of fail.
+ *         nullptr in case of fail.
  */
 MERCALLISDK_API(HRESULT, MercalliCreateUnjello)(
   /* out */ T_Unjello** ppUJ,
@@ -2187,14 +2256,14 @@ MERCALLISDK_API(HRESULT, MercalliCreateUnjello)(
   /* in  */ SINT32  height,
   /* in  */ SINT32  fieldOrder,
   /* in  */ FLOAT32 par,
-  /* in  */ FLOAT32 rate );
+  /* in  */ FLOAT32 rate);
 
 
 /* Analyzes a frame range and estimates shutter speed.
  * The values are used by @ref MercalliUnjelloRenderFrame() depending on @ref MercalliSetUnjelloEnableAutoShutterSpeed().
  * @note The frame range must be set using @ref MercalliSetUnjelloFrameNumberRange() beforehand.
  * @param pUJ              -- Unjello instance
- * @param pProgress        -- Optional progress callback (can be NULL)
+ * @param pProgress        -- Optional progress callback (can be nullptr)
  * @param startFrameNumber -- First required render frame
  * @param endFrameNumber   -- Last required render frame plus one
  * @return HRESULT
@@ -2286,7 +2355,7 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloCustomData(
   (
     pUJ,
     UJVTyp_CustomData,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2300,7 +2369,7 @@ HRESULT MercalliGetUnjelloCustomData(
   /* in  */ const T_Unjello* pUJ,
   /* out */       T**        ppValue)
 {
-  assert(ppValue != NULL);
+  assert(ppValue != nullptr);
   HRESULT hr;
   UINT_PTR Data;
   hr = MercalliGetUnjelloCustomData(pUJ, &Data);
@@ -2322,7 +2391,7 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloMethod(
   (
     pUJ,
     UJVTyp_Method,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2341,7 +2410,7 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloEnableAutoShutterSpeed(
   (
     pUJ,
     UJVTyp_EnableAutoShutterSpeed,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2359,7 +2428,7 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloAverageShutterSpeed(
   (
     pUJ,
     UJVTyp_AverageShutterSpeed,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Option
   );
 }
@@ -2377,7 +2446,7 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloShutterSpeed(
   (
     pUJ,
     UJVTyp_ShutterSpeed,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Option
   );
 }
@@ -2400,12 +2469,12 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloFrameNumberRange(
   (
     pUJ,
     UJVTyp_FrameNumberRange,
-    NULL, 0,             // Arguments
+    nullptr, 0,          // Arguments
     Value, sizeof(Value) // Option
   );
-  if(pStartFrameNumber != NULL)
+  if(pStartFrameNumber != nullptr)
     *pStartFrameNumber = Value[0];
-  if(pEndFrameNumber != NULL)
+  if(pEndFrameNumber != nullptr)
     *pEndFrameNumber = Value[1];
   return hr;
 }
@@ -2424,7 +2493,7 @@ __STATIC_INLINE HRESULT MercalliEstimateUnjelloShutterSpeedRequired(
   (
     pUJ,
     UJVTyp_EstimateShutterSpeedRequired,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2441,13 +2510,13 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloBorderFillMode(
 {
   HRESULT hr;
   UINT32 Tmp;
-  if(pValue == NULL)
+  if(pValue == nullptr)
     return E_POINTER;
   hr = MercalliGetUnjelloValue
   (
     pUJ,
     UJVTyp_BorderFillMode,
-    NULL, 0,          // Arguments
+    nullptr, 0,       // Arguments
     &Tmp, sizeof(Tmp) // Result
   );
   *pValue = (UnjelloBorderFillMode_Enum)Tmp;
@@ -2466,13 +2535,13 @@ __STATIC_INLINE HRESULT MercalliGetUnjelloRemapMode(
 {
   HRESULT hr;
   UINT32 Tmp;
-  if(pValue == NULL)
+  if(pValue == nullptr)
     return E_POINTER;
   hr = MercalliGetUnjelloValue
   (
     pUJ,
     UJVTyp_RemapMode,
-    NULL, 0,          // Arguments
+    nullptr, 0,       // Arguments
     &Tmp, sizeof(Tmp) // Result
   );
   *pValue = (MRemapMode_Enum)Tmp;
@@ -2514,7 +2583,7 @@ __STATIC_INLINE HRESULT MercalliUnjelloFlushCount(
   (
     pUJ,
     UJVTyp_FlushCount,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2533,7 +2602,7 @@ __STATIC_INLINE HRESULT MercalliUnjelloEnableFrameCallback(
   (
     pUJ,
     UJVTyp_EnableFrameCallback,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2552,7 +2621,7 @@ __STATIC_INLINE HRESULT MercalliUnjelloLatencyRenderEnabled(
   (
     pUJ,
     UJVTyp_LatencyRenderEnabled,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2591,7 +2660,7 @@ __STATIC_INLINE HRESULT MercalliUnjelloLatencyFrameCount(
   (
     pUJ,
     UJVTyp_LatencyFrameCount,
-    NULL, 0,                // Arguments
+    nullptr, 0,             // Arguments
     pValue, sizeof(*pValue) // Result
   );
 }
@@ -2635,7 +2704,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloCustomData(
   (
     pUJ,
     UJVTyp_CustomData,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2653,7 +2722,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloFrameCallback(
   (
     pUJ,
     UJVTyp_UnjelloFrameCallback,
-    NULL, 0,             // Arguments
+    nullptr, 0,                 // Arguments
     (void*)value, sizeof(value) // Option
   );
 }
@@ -2675,7 +2744,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloShutterSpeed(
   (
     pUJ,
     UJVTyp_ShutterSpeed,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2698,7 +2767,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloMethod(
   (
     pUJ,
     UJVTyp_Method,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2721,7 +2790,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloFrameNumberRange(
   (
     pUJ,
     UJVTyp_FrameNumberRange,
-    NULL, 0,             // Arguments
+    nullptr, 0,          // Arguments
     Value, sizeof(Value) // Option
   );
 }
@@ -2740,7 +2809,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloEnableAutoShutterSpeed(
   (
     pUJ,
     UJVTyp_EnableAutoShutterSpeed,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2759,7 +2828,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloBorderFillMode(
   (
     pUJ,
     UJVTyp_BorderFillMode,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2778,7 +2847,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloRemapMode(
   (
     pUJ,
     UJVTyp_RemapMode,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2797,7 +2866,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloSplitscreenView(
   (
     pUJ,
     UJVTyp_SplitscreenView,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2816,7 +2885,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloBrandingView(
   (
     pUJ,
     UJVTyp_BrandingView,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2836,7 +2905,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloGpuDeviceCount(
   (
     pUJ,
     UJVTyp_GpuDeviceCount,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2857,7 +2926,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloEnableFrameCallback(
   (
     pUJ,
     UJVTyp_EnableFrameCallback,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }
@@ -2879,7 +2948,7 @@ __STATIC_INLINE HRESULT MercalliSetUnjelloRenderSystem(
   (
     pUJ,
     UJVTyp_RenderSystem,
-    NULL, 0,              // Arguments
+    nullptr, 0,           // Arguments
     &value, sizeof(value) // Option
   );
 }

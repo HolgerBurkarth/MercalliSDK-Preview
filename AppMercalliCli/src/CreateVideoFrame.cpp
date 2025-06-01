@@ -2,7 +2,7 @@
 $CRT 14 Jul 2014 : hb
 
 $AUT Holger Burkarth
-$DAT >>CreateVideoFrame.cpp<< 15 Okt 2024  10:01:39 - (c) proDAD
+$DAT >>CreateVideoFrame.cpp<< 01 Jun 2025  07:33:52 - (c) proDAD
 *******************************************************************/
 #include "stdafx.h"
 
@@ -122,6 +122,8 @@ HRESULT CreateVideoFrame(
   BufSize = Pitch * height;
 
   Frame = new CommonVideoFrame;
+  if(!Frame)
+    return E_OUTOFMEMORY;
 
   Frame->mInfo.Width  = width;
   Frame->mInfo.Height = height;
