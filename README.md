@@ -1,6 +1,6 @@
 # proDAD Mercalli Video Stabilization SDK
 
-Copyright (&copy;) proDAD GmbH, 2007-2025. All rights reserved.
+Copyright &copy; proDAD GmbH, 2007-2026. All rights reserved.
 
 Version: 6.11 (2025-06-01)
 
@@ -129,8 +129,8 @@ proDAD GmbH
 Gauertstr. 2  
 D-78194 Immendingen, Germany  
 
-Homepage: https://www.prodad.com/  
-Author: Holger Burkarth (burkarth at prodad.com)  
+**Homepage**: https://www.prodad.com/  
+**Author**: Holger Burkarth (burkarth at prodad.com) [History](https://github.com/HolgerBurkarth/proDAD-History)  
 
 
 
@@ -138,11 +138,15 @@ Author: Holger Burkarth (burkarth at prodad.com)
 
 ### Playlist of Mercalli Videos on YouTube:
 
-[Stabilize shaky shot and remove CMOS wobble](https://youtu.be/EF2PYhgQqE4)  
-[What Is CMOS Jello or Wobble?](https://youtu.be/NH2W7AR3e2k)
+- [Stabilize shaky shot and remove CMOS wobble](https://youtu.be/EF2PYhgQqE4)  
+- [What Is CMOS Jello or Wobble?](https://youtu.be/NH2W7AR3e2k)
+- [Mercalli v6 AI - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQCM_T8NS9kmOitzfblmtY9_)  
+- [More Mercalli - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQAddwDdGzb7xILWJ29pAgZR)
 
-[Mercalli v6 AI - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQCM_T8NS9kmOitzfblmtY9_)  
-[More Mercalli - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQAddwDdGzb7xILWJ29pAgZR)
+### More links:
+- [Mercalli Product Page](https://www.prodad.com/Video-Stabilization-for-Professionals-30419.html)  
+- [Contact proDAD](https://www.prodad.com/Contacting-proDAD-29758.html)  
+- [Mercalli Manuals](https://github.com/HolgerBurkarth/proDAD-Manuals)  
 
 
 <div style="page-break-after: always;"></div>
