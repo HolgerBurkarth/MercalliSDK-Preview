@@ -140,7 +140,7 @@ D-78194 Immendingen, Germany
 
 - [Stabilize shaky shot and remove CMOS wobble](https://youtu.be/EF2PYhgQqE4)  
 - [What Is CMOS Jello or Wobble?](https://youtu.be/NH2W7AR3e2k)
-- [Mercalli v6 AI - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQCM_T8NS9kmOitzfblmtY9_)  
+- [Mercalli – Tutorials – proDAD (Playlist)](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQCM_T8NS9kmOitzfblmtY9_)  
 - [More Mercalli - Playlist](https://www.youtube.com/playlist?list=PL2Q9EsYBnfQAddwDdGzb7xILWJ29pAgZR)
 
 ### More links:
